@@ -25,7 +25,7 @@ class ConsoleUI(threading.Thread):
         self._syncplayClient = client
 
     def addFileToPlaylist(self, file):
-        self._syncplayClient.playlist.addToPlaylist(file)
+        self._syncplayClient.addToPlaylist(file)
 
     def drop(self):
         pass
@@ -159,8 +159,8 @@ class ConsoleUI(threading.Thread):
             return
         if command.group('command') in constants.COMMANDS_UNDO:
             tmp_pos = self._syncplayClient.getPlayerPosition()
-            self._syncplayClient.setPosition(self._syncplayClient.playerPositionBeforeLastSeek)
-            self._syncplayClient.playerPositionBeforeLastSeek = tmp_pos
+            self._syncplayClient.setPosition(self._syncplayClient.getPlayerPositionBeforeLastSeek())
+            self._syncplayClient.setPlayerPositionBeforeLastSeek(tmp_pos)
         elif command.group('command') in constants.COMMANDS_LIST:
             self.getUserlist()
         elif command.group('command') in constants.COMMANDS_CHAT:
@@ -171,10 +171,10 @@ class ConsoleUI(threading.Thread):
         elif command.group('command') in constants.COMMANDS_ROOM:
             room = command.group('parameter')
             if room is None:
-                if self._syncplayClient.userlist.currentUser.file:
-                    room = self._syncplayClient.userlist.currentUser.file["name"]
+                if self._syncplayClient.getCurrentFile():
+                    room = self._syncplayClient.getCurrentFile()["name"]
                 else:
-                    room = self._syncplayClient.defaultRoom
+                    room = self._syncplayClient.getDefaultRoom()
             self._syncplayClient.setRoom(room, resetAutoplay=True)
             self._syncplayClient.ui.updateRoomName(room)
             self._syncplayClient.sendRoom()
@@ -196,14 +196,14 @@ class ConsoleUI(threading.Thread):
                 return
             self._syncplayClient.ui.addFileToPlaylist(filename)
         elif command.group('command') in constants.COMMANDS_QUEUEANDSELECT:
-            self._syncplayClient.playlist.switchToNewPlaylistItem = True
+            self._syncplayClient.setPlaylistSwitchToNewItem(True)
             self.executeCommand("{} {}".format(constants.COMMANDS_QUEUE[0], command.group('parameter')))
         elif command.group('command') in constants.COMMANDS_PLAYLIST:
-            playlist = self._syncplayClient.playlist
-            playlist_elements = ["\t{}: {}".format(i+1, el) for i, el in enumerate(playlist._playlist)]
+            playlistItems = self._syncplayClient.getPlaylist()
+            playlist_elements = ["\t{}: {}".format(i+1, el) for i, el in enumerate(playlistItems)]
 
             if playlist_elements:
-                i = playlist._playlistIndex
+                i = self._syncplayClient.getPlaylistIndex()
                 if i is not None and i in range(len(playlist_elements)):
                     playlist_elements[i] = " *" + playlist_elements[i]
 
@@ -214,9 +214,9 @@ class ConsoleUI(threading.Thread):
             try:
                 index = int(command.group('parameter').strip()) - 1
 
-                if index < 0 or index >= len(self._syncplayClient.playlist._playlist):
+                if index < 0 or index >= len(self._syncplayClient.getPlaylist()):
                     raise TypeError("Invalid playlist index")
-                self._syncplayClient.playlist.changeToPlaylistIndex(index, resetPosition=True)
+                self._syncplayClient.changeToPlaylistIndex(index, resetPosition=True)
                 self._syncplayClient.rewindFile()
 
             except (TypeError, AttributeError):
@@ -224,12 +224,12 @@ class ConsoleUI(threading.Thread):
         elif command.group('command') in constants.COMMANDS_DELETE:
             try:
                 index = int(command.group('parameter').strip()) - 1
-                self._syncplayClient.playlist.deleteAtIndex(index)
+                self._syncplayClient.deletePlaylistItemAtIndex(index)
 
             except (TypeError, AttributeError):
                 self.showErrorMessage(getMessage("playlist-invalid-index-error"))
         elif command.group('command') in constants.COMMANDS_NEXT:
-            self._syncplayClient.playlist.loadNextFileInPlaylist()
+            self._syncplayClient.loadNextFileInPlaylist()
 
         elif command.group('command') in constants.COMMANDS_SETREADY:
             try:

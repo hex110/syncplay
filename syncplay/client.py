@@ -1185,6 +1185,104 @@ class SyncplayClient(object):
         except Exception as e:
             return "failed", str(e)+"\n-----\n"+getMessage("update-check-failed-notification").format(syncplay.version), constants.SYNCPLAY_DOWNLOAD_URL, None
 
+    # --- UI facade methods ---
+    # These methods provide a public API for the UI layer to access client
+    # internals without reaching into sub-objects directly.
+
+    def hasCustomOpenDialog(self):
+        return self._player and self._player.customOpenDialog
+
+    def openCustomOpenDialog(self):
+        if self._player:
+            self._player.openCustomOpenDialog()
+
+    def setFilenameWatchlist(self, watchlist):
+        self.fileSwitch.setFilenameWatchlist(watchlist)
+
+    def findFilepath(self, filename, highPriority=False):
+        return self.fileSwitch.findFilepath(filename, highPriority=highPriority)
+
+    def setMediaDirectories(self, directories):
+        self.fileSwitch.setMediaDirectories(directories)
+
+    def setCurrentMediaDirectory(self, directory):
+        self.fileSwitch.setCurrentDirectory(directory)
+
+    def changeMediaDirectories(self, directories):
+        self.fileSwitch.changeMediaDirectories(directories)
+
+    def updateFileSwitchInfo(self):
+        self.fileSwitch.updateInfo()
+
+    def notifyUserIfFileNotInMediaDirectory(self, filename, path):
+        self.fileSwitch.notifyUserIfFileNotInMediaDirectory(filename, path)
+
+    def undoPlaylistChange(self):
+        self.playlist.undoPlaylistChange()
+
+    def shuffleRemainingPlaylist(self):
+        self.playlist.shuffleRemainingPlaylist()
+
+    def shuffleEntirePlaylist(self):
+        self.playlist.shuffleEntirePlaylist()
+
+    def changePlaylist(self, newPlaylist):
+        self.playlist.changePlaylist(newPlaylist)
+
+    def loadPlaylistFromFile(self, filepath, shuffle=False):
+        self.playlist.loadPlaylistFromFile(filepath, shuffle=shuffle)
+
+    def savePlaylistToFile(self, filepath):
+        self.playlist.savePlaylistToFile(filepath)
+
+    def getCurrentUsername(self):
+        return self.userlist.currentUser.username
+
+    def getCurrentFile(self):
+        return self.userlist.currentUser.file
+
+    def canCurrentUserControl(self):
+        return self.userlist.currentUser.canControl()
+
+    def isUserReady(self, username):
+        return self.userlist.isReady(username)
+
+    def isReadinessSupported(self, requiresOtherUsers=True):
+        return self.userlist.isReadinessSupported(requiresOtherUsers=requiresOtherUsers)
+
+    def getServerFeatures(self):
+        return self.serverFeatures
+
+    def getDefaultRoom(self):
+        return self.defaultRoom
+
+    def getPlayerPositionBeforeLastSeek(self):
+        return self.playerPositionBeforeLastSeek
+
+    def setPlayerPositionBeforeLastSeek(self, position):
+        self.playerPositionBeforeLastSeek = position
+
+    def addToPlaylist(self, file):
+        self.playlist.addToPlaylist(file)
+
+    def changeToPlaylistIndex(self, index, resetPosition=False):
+        self.playlist.changeToPlaylistIndex(index, resetPosition=resetPosition)
+
+    def deletePlaylistItemAtIndex(self, index):
+        self.playlist.deleteAtIndex(index)
+
+    def loadNextFileInPlaylist(self):
+        self.playlist.loadNextFileInPlaylist()
+
+    def getPlaylist(self):
+        return list(self.playlist._playlist)
+
+    def getPlaylistIndex(self):
+        return self.playlist._playlistIndex
+
+    def setPlaylistSwitchToNewItem(self, value):
+        self.playlist.switchToNewPlaylistItem = value
+
     class _WarningManager(object):
         def __init__(self, player, userlist, ui, client):
             self._client = client
