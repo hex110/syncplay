@@ -42,71 +42,99 @@ class ConsoleInGUI(ConsoleUI):
 
 
 class UserlistItemDelegate(QtWidgets.QStyledItemDelegate):
+    """Card-style delegate for the user list tree view.
+
+    Draws a colored status dot (ready/not-ready), controller crown,
+    and file-switch icons with improved spacing.
+    """
+
+    # Status dot colours (derived from theme tokens)
+    _DOT_READY    = QtGui.QColor(Colors.SUCCESS)       # Green
+    _DOT_NOTREADY = QtGui.QColor(Colors.DANGER)        # Red
+    _DOT_UNKNOWN  = QtGui.QColor(Colors.TEXT_MUTED)    # Grey (no info / different room)
+    _DOT_RADIUS   = 5  # px
+
     def __init__(self, view=None):
         self.view = view
         QtWidgets.QStyledItemDelegate.__init__(self)
 
     def sizeHint(self, option, index):
         size = QtWidgets.QStyledItemDelegate.sizeHint(self, option, index)
-        if (index.column() == constants.USERLIST_GUI_USERNAME_COLUMN):
+        isUserRow = index.parent() != index.parent().parent()
+        if isUserRow:
+            # Taller rows for user cards
+            size.setHeight(max(size.height(), 28))
+        if index.column() == constants.USERLIST_GUI_USERNAME_COLUMN:
             size.setWidth(size.width() + constants.USERLIST_GUI_USERNAME_OFFSET)
         return size
 
     def paint(self, itemQPainter, optionQStyleOptionViewItem, indexQModelIndex):
         column = indexQModelIndex.column()
-        midY = int((optionQStyleOptionViewItem.rect.y() + optionQStyleOptionViewItem.rect.bottomLeft().y()) / 2)
+        rect = optionQStyleOptionViewItem.rect
+        midY = int((rect.y() + rect.bottomLeft().y()) / 2)
+        isUserRow = indexQModelIndex.parent() != indexQModelIndex.parent().parent()
+
         if column == constants.USERLIST_GUI_USERNAME_COLUMN:
             currentQAbstractItemModel = indexQModelIndex.model()
-            itemQModelIndex = currentQAbstractItemModel.index(indexQModelIndex.row(), constants.USERLIST_GUI_USERNAME_COLUMN, indexQModelIndex.parent())
-            controlIconQPixmap = QtGui.QPixmap(resourcespath + "user_key.png")
-            tickIconQPixmap = QtGui.QPixmap(resourcespath + "tick.png")
-            crossIconQPixmap = QtGui.QPixmap(resourcespath + "cross.png")
-            roomController = currentQAbstractItemModel.data(itemQModelIndex, Qt.UserRole + constants.USERITEM_CONTROLLER_ROLE)
-            userReady = currentQAbstractItemModel.data(itemQModelIndex, Qt.UserRole + constants.USERITEM_READY_ROLE)
-            isUserRow = indexQModelIndex.parent() != indexQModelIndex.parent().parent()
-            bkgColor = self.view.palette().color(QtGui.QPalette.Base)
-            if isUserRow and (isMacOS() or isLinux()):
-                blankRect = QtCore.QRect(0, optionQStyleOptionViewItem.rect.y(), optionQStyleOptionViewItem.rect.width(), optionQStyleOptionViewItem.rect.height())
-                itemQPainter.fillRect(blankRect, bkgColor)
+            itemQModelIndex = currentQAbstractItemModel.index(
+                indexQModelIndex.row(), constants.USERLIST_GUI_USERNAME_COLUMN, indexQModelIndex.parent())
 
-            if roomController and not controlIconQPixmap.isNull():
-                itemQPainter.drawPixmap(
-                    optionQStyleOptionViewItem.rect.x()+6,
-                    midY-8,
-                    controlIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
+            roomController = currentQAbstractItemModel.data(
+                itemQModelIndex, Qt.UserRole + constants.USERITEM_CONTROLLER_ROLE)
+            userReady = currentQAbstractItemModel.data(
+                itemQModelIndex, Qt.UserRole + constants.USERITEM_READY_ROLE)
 
-            if userReady and not tickIconQPixmap.isNull():
-                itemQPainter.drawPixmap(
-                    (optionQStyleOptionViewItem.rect.x()-10),
-                    midY - 8,
-                    tickIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
-
-            elif userReady == False and not crossIconQPixmap.isNull():
-                itemQPainter.drawPixmap(
-                    (optionQStyleOptionViewItem.rect.x()-10),
-                    midY - 8,
-                    crossIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
             if isUserRow:
-                optionQStyleOptionViewItem.rect.setX(optionQStyleOptionViewItem.rect.x()+constants.USERLIST_GUI_USERNAME_OFFSET)
+                # ── Status dot ──────────────────────────────────────────
+                itemQPainter.save()
+                itemQPainter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+                if userReady is True:
+                    dotColor = self._DOT_READY
+                elif userReady is False:
+                    dotColor = self._DOT_NOTREADY
+                else:
+                    dotColor = self._DOT_UNKNOWN
+                itemQPainter.setBrush(dotColor)
+                itemQPainter.setPen(Qt.NoPen)
+                dotX = rect.x() + 4 + self._DOT_RADIUS
+                itemQPainter.drawEllipse(
+                    QtCore.QPointF(dotX, midY),
+                    self._DOT_RADIUS, self._DOT_RADIUS)
+                itemQPainter.restore()
+
+                # ── Controller crown icon ───────────────────────────────
+                controlIconQPixmap = QtGui.QPixmap(resourcespath + "user_key.png")
+                if roomController and not controlIconQPixmap.isNull():
+                    itemQPainter.drawPixmap(
+                        rect.x() + 4 + self._DOT_RADIUS * 2 + 4,
+                        midY - 8,
+                        controlIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
+
+                # Shift text past the dot + icon area
+                optionQStyleOptionViewItem.rect.setX(
+                    rect.x() + constants.USERLIST_GUI_USERNAME_OFFSET)
+
         if column == constants.USERLIST_GUI_FILENAME_COLUMN:
             currentQAbstractItemModel = indexQModelIndex.model()
-            itemQModelIndex = currentQAbstractItemModel.index(indexQModelIndex.row(), constants.USERLIST_GUI_FILENAME_COLUMN, indexQModelIndex.parent())
-            fileSwitchRole = currentQAbstractItemModel.data(itemQModelIndex, Qt.UserRole + constants.FILEITEM_SWITCH_ROLE)
+            itemQModelIndex = currentQAbstractItemModel.index(
+                indexQModelIndex.row(), constants.USERLIST_GUI_FILENAME_COLUMN, indexQModelIndex.parent())
+            fileSwitchRole = currentQAbstractItemModel.data(
+                itemQModelIndex, Qt.UserRole + constants.FILEITEM_SWITCH_ROLE)
+
             if fileSwitchRole == constants.FILEITEM_SWITCH_FILE_SWITCH:
                 fileSwitchIconQPixmap = QtGui.QPixmap(resourcespath + "film_go.png")
                 itemQPainter.drawPixmap(
-                    (optionQStyleOptionViewItem.rect.x()),
-                    midY - 8,
+                    rect.x(), midY - 8,
                     fileSwitchIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
-                optionQStyleOptionViewItem.rect.setX(optionQStyleOptionViewItem.rect.x()+16)
+                optionQStyleOptionViewItem.rect.setX(rect.x() + 18)
 
             elif fileSwitchRole == constants.FILEITEM_SWITCH_STREAM_SWITCH:
                 streamSwitchIconQPixmap = QtGui.QPixmap(resourcespath + "world_go.png")
                 itemQPainter.drawPixmap(
-                    (optionQStyleOptionViewItem.rect.x()),
-                    midY - 8,
+                    rect.x(), midY - 8,
                     streamSwitchIconQPixmap.scaled(16, 16, Qt.KeepAspectRatio))
-                optionQStyleOptionViewItem.rect.setX(optionQStyleOptionViewItem.rect.x()+16)
+                optionQStyleOptionViewItem.rect.setX(rect.x() + 18)
+
         QtWidgets.QStyledItemDelegate.paint(self, itemQPainter, optionQStyleOptionViewItem, indexQModelIndex)
 
 
@@ -231,32 +259,47 @@ class MainWindow(QtWidgets.QMainWindow):
             self.playlist.forceUpdate()
 
     class PlaylistItemDelegate(QtWidgets.QStyledItemDelegate):
+        """Draws a brand-colored dot for the currently playing file
+        and a colored line at the drag-drop insert position."""
+
+        _NOW_PLAYING_COLOR = QtGui.QColor(Colors.BRAND)
+        _INSERT_LINE_COLOR = QtGui.QColor(Colors.BRAND)
+        _DOT_RADIUS = 4
+
         def paint(self, itemQPainter, optionQStyleOptionViewItem, indexQModelIndex):
             itemQPainter.save()
             currentQAbstractItemModel = indexQModelIndex.model()
             currentlyPlayingFile = currentQAbstractItemModel.data(indexQModelIndex, Qt.UserRole + constants.PLAYLISTITEM_CURRENTLYPLAYING_ROLE)
+            rect = optionQStyleOptionViewItem.rect
+            midY = int((rect.y() + rect.bottomLeft().y()) / 2)
+
             if currentlyPlayingFile:
-                currentlyplayingIconQPixmap = QtGui.QPixmap(resourcespath + "bullet_right_grey.png")
-                midY = int((optionQStyleOptionViewItem.rect.y() + optionQStyleOptionViewItem.rect.bottomLeft().y()) / 2)
-                itemQPainter.drawPixmap(
-                    (optionQStyleOptionViewItem.rect.x()+4),
-                    midY-8,
-                    currentlyplayingIconQPixmap.scaled(6, 16, Qt.KeepAspectRatio))
-                optionQStyleOptionViewItem.rect.setX(optionQStyleOptionViewItem.rect.x()+10)
+                # Draw brand-colored "now playing" dot
+                itemQPainter.setRenderHint(QtGui.QPainter.Antialiasing, True)
+                itemQPainter.setBrush(self._NOW_PLAYING_COLOR)
+                itemQPainter.setPen(Qt.NoPen)
+                itemQPainter.drawEllipse(
+                    QtCore.QPointF(rect.x() + 4 + self._DOT_RADIUS, midY),
+                    self._DOT_RADIUS, self._DOT_RADIUS)
+                optionQStyleOptionViewItem.rect.setX(rect.x() + 4 + self._DOT_RADIUS * 2 + 4)
 
             QtWidgets.QStyledItemDelegate.paint(self, itemQPainter, optionQStyleOptionViewItem, indexQModelIndex)
 
+            # Draw drag-drop insert position line
             lineAbove = False
             lineBelow = False
             if MainWindow.insertPosition == 0 and indexQModelIndex.row() == 0:
                 lineAbove = True
             elif MainWindow.insertPosition and indexQModelIndex.row() == MainWindow.insertPosition-1:
                 lineBelow = True
-            if lineAbove:
-                line = QLine(optionQStyleOptionViewItem.rect.topLeft(), optionQStyleOptionViewItem.rect.topRight())
-                itemQPainter.drawLine(line)
-            elif lineBelow:
-                line = QLine(optionQStyleOptionViewItem.rect.bottomLeft(), optionQStyleOptionViewItem.rect.bottomRight())
+
+            if lineAbove or lineBelow:
+                pen = QtGui.QPen(self._INSERT_LINE_COLOR, 2)
+                itemQPainter.setPen(pen)
+                if lineAbove:
+                    line = QLine(rect.topLeft(), rect.topRight())
+                else:
+                    line = QLine(rect.bottomLeft(), rect.bottomRight())
                 itemQPainter.drawLine(line)
             itemQPainter.restore()
 
@@ -654,7 +697,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     font.setWeight(QtGui.QFont.Bold)
                     self.updateReadyState(currentUser.isReadyWithFile())
                 if isControlledRoom and not isController:
-                    useritem.setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_NOTCONTROLLER_COLOR)))
+                    useritem.setForeground(QtGui.QBrush(QtGui.QColor(Colors.NOT_CONTROLLER)))
                 useritem.setFont(font)
                 useritem.setFlags(useritem.flags() & ~Qt.ItemIsEditable)
                 filenameitem.setFlags(filenameitem.flags() & ~Qt.ItemIsEditable)
