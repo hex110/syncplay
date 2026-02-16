@@ -1645,6 +1645,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window.autoplayFrame.setLayout(window.autoplayLayout)
 
         window.autoplayPushButton = QtWidgets.QPushButton()
+        window.autoplayPushButton.setObjectName("autoplayButton")
         window.autoplayPushButton.setProperty("buttonTier", "secondary")
         autoPlayFont = QtGui.QFont()
         autoPlayFont.setWeight(QtGui.QFont.Bold)

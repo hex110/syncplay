@@ -350,7 +350,7 @@ QMessageBox {{
    Button Tiers
    =================================================================== */
 
-/* ── Default / Tier 2 (Secondary) ────────────────────────────────── */
+/* ── Default (unstyled buttons — inherits secondary look) ────────── */
 
 QPushButton {{
     background-color: transparent;
@@ -359,6 +359,7 @@ QPushButton {{
     border-radius: 4px;
     padding: 5px 14px;
     font-weight: 500;
+    outline: none;
 }}
 
 QPushButton:hover {{
@@ -370,9 +371,44 @@ QPushButton:pressed {{
     background-color: {Colors.BG_BASE};
 }}
 
+QPushButton:focus {{
+    border-color: {Colors.BRAND};
+}}
+
 QPushButton:disabled {{
     color: {Colors.TEXT_MUTED};
     border-color: {Colors.BORDER};
+    background-color: transparent;
+}}
+
+/* ── Tier 2 (Secondary — bordered, explicit) ─────────────────────── */
+
+QPushButton[buttonTier="secondary"] {{
+    background-color: transparent;
+    color: {Colors.TEXT_MAIN};
+    border: 1px solid {Colors.BG_INPUT};
+    border-radius: 4px;
+    padding: 5px 14px;
+    font-weight: 500;
+}}
+
+QPushButton[buttonTier="secondary"]:hover {{
+    background-color: {Colors.BG_INPUT};
+    border-color: {Colors.TEXT_MUTED};
+}}
+
+QPushButton[buttonTier="secondary"]:pressed {{
+    background-color: {Colors.BG_BASE};
+}}
+
+QPushButton[buttonTier="secondary"]:checked {{
+    background-color: {Colors.BG_INPUT};
+    border-color: {Colors.BRAND};
+    color: white;
+}}
+
+QPushButton[buttonTier="secondary"]:checked:hover {{
+    background-color: {Colors.BG_ELEVATED};
 }}
 
 /* ── Tier 1 (Primary — the Happy Path) ───────────────────────────── */
@@ -417,6 +453,11 @@ QPushButton[buttonTier="tertiary"]:hover {{
 
 QPushButton[buttonTier="tertiary"]:pressed {{
     background-color: {Colors.BG_BASE};
+}}
+
+QPushButton[buttonTier="tertiary"]:disabled {{
+    color: {Colors.TEXT_MUTED};
+    background-color: transparent;
 }}
 
 /* ── Danger variant ──────────────────────────────────────────────── */
