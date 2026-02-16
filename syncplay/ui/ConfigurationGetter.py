@@ -525,11 +525,9 @@ class ConfigurationGetter(object):
         self._overrideConfigWithArgs(args)
         if not self._config['noGui']:
             try:
-                from syncplay.vendor.Qt import QtWidgets, IsPySide, IsPySide2, IsPySide6, QtGui
-                from syncplay.vendor.Qt.QtCore import QCoreApplication
+                from PySide6 import QtWidgets, QtGui
+                from PySide6.QtCore import QCoreApplication
                 from syncplay.vendor import qt5reactor
-                if not (IsPySide6 or IsPySide2 or IsPySide):
-                    raise ImportError("Failed to identify compatible version of PySide.")
                 if QCoreApplication.instance() is None:
                     self.app = QtWidgets.QApplication(sys.argv)
                     self.app.setDesktopFileName("syncplay")

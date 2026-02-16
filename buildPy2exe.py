@@ -597,21 +597,20 @@ def pruneUnneededLibraries():
     from pathlib import Path
     cwd = os.getcwd()
     libDir = cwd + '\\' + OUT_DIR + '\\lib\\'
-    unneededModules = ['PySide2.Qt3D*', 'PySide2.QtAxContainer.pyd', 'PySide2.QtCharts.pyd', 'PySide2.QtConcurrent.pyd',
-                       'PySide2.QtDataVisualization.pyd', 'PySide2.QtHelp.pyd', 'PySide2.QtLocation.pyd',
-                       'PySide2.QtMultimedia.pyd', 'PySide2.QtMultimediaWidgets.pyd', 'PySide2.QtOpenGL.pyd',
-                       'PySide2.QtPositioning.pyd', 'PySide2.QtPrintSupport.pyd', 'PySide2.QtQml.pyd',
-                       'PySide2.QtQuick.pyd', 'PySide2.QtQuickWidgets.pyd', 'PySide2.QtScxml.pyd', 'PySide2.QtSensors.pyd',
-                       'PySide2.QtSql.pyd', 'PySide2.QtSvg.pyd', 'PySide2.QtTest.pyd', 'PySide2.QtTextToSpeech.pyd',
-                       'PySide2.QtUiTools.pyd', 'PySide2.QtWebChannel.pyd', 'PySide2.QtWebEngine.pyd',
-                       'PySide2.QtWebEngineCore.pyd', 'PySide2.QtWebEngineWidgets.pyd', 'PySide2.QtWebSockets.pyd',
-                       'PySide2.QtWinExtras.pyd', 'PySide2.QtXml.pyd', 'PySide2.QtXmlPatterns.pyd']
-    unneededLibs = ['Qt53D*', 'Qt5Charts.dll', 'Qt5Concurrent.dll', 'Qt5DataVisualization.dll', 'Qt5Gamepad.dll', 'Qt5Help.dll',
-                    'Qt5Location.dll', 'Qt5Multimedia.dll', 'Qt5MultimediaWidgets.dll', 'Qt5OpenGL.dll', 'Qt5Positioning.dll',
-                    'Qt5PrintSupport.dll', 'Qt5Quick.dll', 'Qt5QuickWidgets.dll', 'Qt5Scxml.dll', 'Qt5Sensors.dll', 'Qt5Sql.dll',
-                    'Qt5Svg.dll', 'Qt5Test.dll', 'Qt5TextToSpeech.dll', 'Qt5WebChannel.dll', 'Qt5WebEngine.dll',
-                    'Qt5WebEngineCore.dll', 'Qt5WebEngineWidgets.dll', 'Qt5WebSockets.dll', 'Qt5WinExtras.dll', 'Qt5Xml.dll',
-                    'Qt5XmlPatterns.dll']
+    unneededModules = ['PySide6.Qt3D*', 'PySide6.QtAxContainer.pyd', 'PySide6.QtCharts.pyd', 'PySide6.QtConcurrent.pyd',
+                       'PySide6.QtDataVisualization.pyd', 'PySide6.QtHelp.pyd', 'PySide6.QtLocation.pyd',
+                       'PySide6.QtMultimedia.pyd', 'PySide6.QtMultimediaWidgets.pyd', 'PySide6.QtOpenGL.pyd',
+                       'PySide6.QtPositioning.pyd', 'PySide6.QtPrintSupport.pyd', 'PySide6.QtQml.pyd',
+                       'PySide6.QtQuick.pyd', 'PySide6.QtQuickWidgets.pyd', 'PySide6.QtScxml.pyd', 'PySide6.QtSensors.pyd',
+                       'PySide6.QtSql.pyd', 'PySide6.QtSvg.pyd', 'PySide6.QtTest.pyd', 'PySide6.QtTextToSpeech.pyd',
+                       'PySide6.QtWebChannel.pyd', 'PySide6.QtWebEngine.pyd',
+                       'PySide6.QtWebEngineCore.pyd', 'PySide6.QtWebEngineWidgets.pyd', 'PySide6.QtWebSockets.pyd',
+                       'PySide6.QtXml.pyd']
+    unneededLibs = ['Qt63D*', 'Qt6Charts.dll', 'Qt6Concurrent.dll', 'Qt6DataVisualization.dll', 'Qt6Help.dll',
+                    'Qt6Location.dll', 'Qt6Multimedia.dll', 'Qt6MultimediaWidgets.dll', 'Qt6OpenGL.dll', 'Qt6Positioning.dll',
+                    'Qt6PrintSupport.dll', 'Qt6Quick.dll', 'Qt6QuickWidgets.dll', 'Qt6Scxml.dll', 'Qt6Sensors.dll', 'Qt6Sql.dll',
+                    'Qt6Svg.dll', 'Qt6Test.dll', 'Qt6TextToSpeech.dll', 'Qt6WebChannel.dll', 'Qt6WebEngine.dll',
+                    'Qt6WebEngineCore.dll', 'Qt6WebEngineWidgets.dll', 'Qt6WebSockets.dll', 'Qt6Xml.dll']
     windowsDLL = ['MSVCP140.dll', 'VCRUNTIME140.dll']
     deleteList = unneededModules + unneededLibs + windowsDLL
     deleteList.append('api-*')
@@ -621,8 +620,8 @@ def pruneUnneededLibraries():
 
 def copyQtPlugins(paths):
     import shutil
-    from PySide2 import QtCore
-    basePath = QtCore.QLibraryInfo.location(QtCore.QLibraryInfo.PluginsPath)
+    from PySide6 import QtCore
+    basePath = QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.PluginsPath)
     basePath = basePath.replace('/', '\\')
     destBase = os.getcwd() + '\\' + OUT_DIR
     for elem in paths:
@@ -678,7 +677,7 @@ info = dict(
     options={
         'py2exe': {
             'dist_dir': OUT_DIR,
-            'packages': 'PySide2, cffi, OpenSSL, certifi',
+            'packages': 'PySide6, cffi, OpenSSL, certifi',
             'includes': 'twisted, sys, encodings, datetime, os, time, math, urllib, ast, unicodedata, _ssl, win32pipe, win32file, sqlite3',
             'excludes': 'venv, doctest, pdb, unittest, win32clipboard, win32pdh, win32security, win32trace, win32ui, winxpgui, win32process, tcl, tkinter',
             'dll_excludes': 'msvcr71.dll, MSVCP90.dll, POWRPROF.dll',

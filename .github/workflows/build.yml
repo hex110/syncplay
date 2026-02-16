@@ -12,8 +12,8 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8'
-          architecture: x86
+          python-version: '3.12'
+          architecture: x64
 
       - name: Check Python install
         run: |
@@ -32,9 +32,9 @@ jobs:
 
       - name: Check Python dependencies
         run: |
-          python3 -c "from PySide2 import __version__; print(__version__)"
-          python3 -c "from PySide2.QtCore import __version__; print(__version__)"
-          python3 -c "from PySide2.QtCore import QLibraryInfo; print(QLibraryInfo.location(QLibraryInfo.LibrariesPath))"
+          python3 -c "from PySide6 import __version__; print(__version__)"
+          python3 -c "from PySide6.QtCore import __version__; print(__version__)"
+          python3 -c "from PySide6.QtCore import QLibraryInfo; print(QLibraryInfo.path(QLibraryInfo.LibrariesPath))"
 
       - name: Build
         run: |

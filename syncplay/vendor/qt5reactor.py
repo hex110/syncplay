@@ -106,7 +106,7 @@ Subsequent port by therve
 
 import sys
 
-from syncplay.vendor.Qt.QtCore import (
+from PySide6.QtCore import (
      QCoreApplication, QEventLoop, QObject, QSocketNotifier, QTimer, Signal)
 from twisted.internet import posixbase
 from twisted.internet.interfaces import IReactorFDSet

@@ -11,21 +11,10 @@ from syncplay.players.playerFactory import PlayerFactory
 from syncplay.utils import isBSD, isLinux, isMacOS, isWindows
 from syncplay.utils import resourcespath, posixresourcespath, playerPathExists
 
-from syncplay.vendor.Qt import QtCore, QtWidgets, QtGui, __binding__, IsPySide, IsPySide2, IsPySide6
-from syncplay.vendor.Qt.QtCore import Qt, QSettings, QCoreApplication, QSize, QPoint, QUrl, QLine, QEventLoop, Signal
-from syncplay.vendor.Qt.QtWidgets import QApplication, QLineEdit, QLabel, QCheckBox, QButtonGroup, QRadioButton, QDoubleSpinBox, QPlainTextEdit
-from syncplay.vendor.Qt.QtGui import QCursor, QIcon, QImage, QDesktopServices
-try:
-    if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-        QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-except AttributeError:
-    pass  # To ignore error "Attribute Qt::AA_EnableHighDpiScaling must be set before QCoreApplication is created"
-if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
-if IsPySide6:
-    from PySide6.QtCore import QStandardPaths
-elif IsPySide2:
-    from PySide2.QtCore import QStandardPaths
+from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtCore import Qt, QSettings, QCoreApplication, QSize, QPoint, QUrl, QLine, QEventLoop, Signal, QStandardPaths
+from PySide6.QtWidgets import QApplication, QLineEdit, QLabel, QCheckBox, QButtonGroup, QRadioButton, QDoubleSpinBox, QPlainTextEdit
+from PySide6.QtGui import QCursor, QIcon, QImage, QDesktopServices
 
 
 class GuiConfiguration:
@@ -442,28 +431,16 @@ class ConfigDialog(QtWidgets.QDialog):
     def browseMediapath(self):
         self.loadMediaBrowseSettings()
         options = QtWidgets.QFileDialog.Options()
-        if IsPySide:
-            if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]):
-                defaultdirectory = self.config["mediaSearchDirectories"][0]
-            elif os.path.isdir(self.mediadirectory):
-                defaultdirectory = self.mediadirectory
-            elif os.path.isdir(QDesktopServices.storageLocation(QDesktopServices.MoviesLocation)):
-                defaultdirectory = QDesktopServices.storageLocation(QDesktopServices.MoviesLocation)
-            elif os.path.isdir(QDesktopServices.storageLocation(QDesktopServices.HomeLocation)):
-                defaultdirectory = QDesktopServices.storageLocation(QDesktopServices.HomeLocation)
-            else:
-                defaultdirectory = ""
-        elif IsPySide6 or IsPySide2:
-            if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]):
-                defaultdirectory = self.config["mediaSearchDirectories"][0]
-            elif os.path.isdir(self.mediadirectory):
-                defaultdirectory = self.mediadirectory
-            elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]):
-                defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]
-            elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]):
-                defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]
-            else:
-                defaultdirectory = ""
+        if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]):
+            defaultdirectory = self.config["mediaSearchDirectories"][0]
+        elif os.path.isdir(self.mediadirectory):
+            defaultdirectory = self.mediadirectory
+        elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]):
+            defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]
+        elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]):
+            defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]
+        else:
+            defaultdirectory = ""
         browserfilter = "All files (*)"
         fileName, filtr = QtWidgets.QFileDialog.getOpenFileName(
             self, "Browse for media files", defaultdirectory,
@@ -727,10 +704,7 @@ class ConfigDialog(QtWidgets.QDialog):
         self.executablepathLabel.setObjectName("executable-path")
         self.executablepathCombobox.setObjectName("executable-path")
         self.executablepathCombobox.setMinimumContentsLength(constants.EXECUTABLE_COMBOBOX_MINIMUM_LENGTH)
-        if not IsPySide6:
-            self.executablepathCombobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLength)
-        else:
-            self.executablepathCombobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.executablepathCombobox.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.mediapathLabel.setObjectName("media-path")
         self.mediapathTextbox.setObjectName(constants.LOAD_SAVE_MANUALLY_MARKER + "media-path")
         self.playerargsLabel.setObjectName("player-arguments")

@@ -18,28 +18,8 @@ from syncplay.ui.consoleUI import ConsoleUI
 from syncplay.utils import resourcespath
 from syncplay.utils import isLinux, isWindows, isMacOS
 from syncplay.utils import formatTime, sameFilename, sameFilesize, sameFileduration, RoomPasswordProvider, formatSize, isURL
-from syncplay.vendor import Qt
-from syncplay.vendor.Qt import QtCore, QtWidgets, QtGui, __binding__, __binding_version__, __qt_version__, IsPySide, IsPySide2, IsPySide6
-from syncplay.vendor.Qt.QtCore import Qt, QSettings, QSize, QPoint, QUrl, QLine, QDateTime
-applyDPIScaling = True
-if isLinux():
-    applyDPIScaling = False
-else:
-    applyDPIScaling = True
-try:
-    if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-        QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, applyDPIScaling)
-except AttributeError:
-    pass  # To ignore error "Attribute Qt::AA_EnableHighDpiScaling must be set before QCoreApplication is created"
-if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, applyDPIScaling)
-if IsPySide6:
-    from PySide6.QtCore import QStandardPaths
-elif IsPySide2:
-    from PySide2.QtCore import QStandardPaths
-if isMacOS() and IsPySide:
-    from Foundation import NSURL
-    from Cocoa import NSString, NSUTF8StringEncoding
+from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtCore import Qt, QSettings, QSize, QPoint, QUrl, QLine, QDateTime, QStandardPaths
 lastCheckedForUpdates = None
 from syncplay.vendor import darkdetect
 if isMacOS() or isWindows():
@@ -156,8 +136,8 @@ class AboutDialog(QtWidgets.QDialog):
         versionExtString = version + revision
         versionLabel = QtWidgets.QLabel(
             "<p><center>" + getMessage("about-dialog-release").format(versionExtString, release_number) +
-            "<br />Python " + python_version() + " - " + __binding__ + " " + __binding_version__ +
-            " - Qt " + __qt_version__ + "</center></p>")
+            "<br />Python " + python_version() + " - PySide6 " + QtCore.__version__ +
+            " - Qt " + QtCore.qVersion() + "</center></p>")
         licenseLabel = QtWidgets.QLabel(
             "<center><p>Copyright &copy; 2012&ndash;2025 Syncplay</p><p>" +
             getMessage("about-dialog-license-text") + "</p></center>")
@@ -317,12 +297,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 indexRow = window.playlist.count() if window.clearedPlaylistNote else 0
 
                 for url in urls[::-1]:
-                    if isMacOS() and IsPySide:
-                        macURL = NSString.alloc().initWithString_(str(url.toString()))
-                        pathString = macURL.stringByAddingPercentEscapesUsingEncoding_(NSUTF8StringEncoding)
-                        dropfilepath = os.path.abspath(NSURL.URLWithString_(pathString).filePathURL().path())
-                    else:
-                        dropfilepath = os.path.abspath(str(url.toLocalFile()))
+                    dropfilepath = os.path.abspath(str(url.toLocalFile()))
                     if os.path.isfile(dropfilepath):
                         window.addFileToPlaylist(dropfilepath, indexRow)
                     elif os.path.isdir(dropfilepath):
@@ -430,12 +405,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if indexRow == -1:
                     indexRow = window.playlist.count()
                 for url in urls[::-1]:
-                    if isMacOS() and IsPySide:
-                        macURL = NSString.alloc().initWithString_(str(url.toString()))
-                        pathString = macURL.stringByAddingPercentEscapesUsingEncoding_(NSUTF8StringEncoding)
-                        dropfilepath = os.path.abspath(NSURL.URLWithString_(pathString).filePathURL().path())
-                    else:
-                        dropfilepath = os.path.abspath(str(url.toLocalFile()))
+                    dropfilepath = os.path.abspath(str(url.toLocalFile()))
                     if os.path.isfile(dropfilepath):
                         window.addFileToPlaylist(dropfilepath, indexRow)
                     elif os.path.isdir(dropfilepath):
@@ -840,24 +810,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.listTreeView.setFirstColumnSpanned(roomtocheck, self.listTreeView.rootIndex(), True)
                 roomtocheck += 1
             self.listTreeView.header().setStretchLastSection(False)
-            if IsPySide6 or IsPySide2:
-                self.listTreeView.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
-            if IsPySide:
-                self.listTreeView.header().setResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
-                self.listTreeView.header().setResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+            self.listTreeView.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+            self.listTreeView.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+            self.listTreeView.header().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+            self.listTreeView.header().setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
             NarrowTabsWidth = self.listTreeView.header().sectionSize(0)+self.listTreeView.header().sectionSize(1)+self.listTreeView.header().sectionSize(2)
             if self.listTreeView.header().width() < (NarrowTabsWidth+self.listTreeView.header().sectionSize(3)):
                 self.listTreeView.header().resizeSection(3, self.listTreeView.header().width()-NarrowTabsWidth)
             else:
-                if IsPySide6 or IsPySide2:
-                    self.listTreeView.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
-                if IsPySide:
-                    self.listTreeView.header().setResizeMode(3, QtWidgets.QHeaderView.Stretch)
+                self.listTreeView.header().setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
             self.listTreeView.expandAll()
         except:
             pass
@@ -1040,28 +1001,16 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.endGroup()
 
     def getInitialMediaDirectory(self, includeUserSpecifiedDirectories=True):
-        if IsPySide:
-            if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]) and includeUserSpecifiedDirectories:
-                defaultdirectory = self.config["mediaSearchDirectories"][0]
-            elif includeUserSpecifiedDirectories and os.path.isdir(self.mediadirectory):
-                defaultdirectory = self.mediadirectory
-            elif os.path.isdir(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.MoviesLocation)):
-                defaultdirectory = QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.MoviesLocation)
-            elif os.path.isdir(QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.HomeLocation)):
-                defaultdirectory = QtGui.QDesktopServices.storageLocation(QtGui.QDesktopServices.HomeLocation)
-            else:
-                defaultdirectory = ""
-        elif IsPySide6 or IsPySide2:
-            if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]) and includeUserSpecifiedDirectories:
-                defaultdirectory = self.config["mediaSearchDirectories"][0]
-            elif includeUserSpecifiedDirectories and os.path.isdir(self.mediadirectory):
-                defaultdirectory = self.mediadirectory
-            elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]):
-                defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]
-            elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]):
-                defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]
-            else:
-                defaultdirectory = ""
+        if self.config["mediaSearchDirectories"] and os.path.isdir(self.config["mediaSearchDirectories"][0]) and includeUserSpecifiedDirectories:
+            defaultdirectory = self.config["mediaSearchDirectories"][0]
+        elif includeUserSpecifiedDirectories and os.path.isdir(self.mediadirectory):
+            defaultdirectory = self.mediadirectory
+        elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]):
+            defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.MoviesLocation)[0]
+        elif os.path.isdir(QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]):
+            defaultdirectory = QStandardPaths.standardLocations(QStandardPaths.HomeLocation)[0]
+        else:
+            defaultdirectory = ""
         return defaultdirectory
 
     @needsClient
@@ -1071,10 +1020,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.loadMediaBrowseSettings()
-        if isMacOS() and IsPySide:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.DontUseNativeDialog)
-        else:
-            options = QtWidgets.QFileDialog.Options()
+        options = QtWidgets.QFileDialog.Options()
         self.mediadirectory = ""
         currentdirectory = os.path.dirname(self._syncplayClient.getCurrentFile()["path"]) if self._syncplayClient.getCurrentFile() else None
         if currentdirectory and os.path.isdir(currentdirectory):
@@ -1100,10 +1046,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         self.loadMediaBrowseSettings()
-        if isMacOS() and IsPySide:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.DontUseNativeDialog)
-        else:
-            options = QtWidgets.QFileDialog.Options()
+        options = QtWidgets.QFileDialog.Options()
         self.mediadirectory = ""
         currentdirectory = os.path.dirname(self._syncplayClient.getCurrentFile()["path"]) if self._syncplayClient.getCurrentFile() else None
         if currentdirectory and os.path.isdir(currentdirectory):
@@ -1129,10 +1072,7 @@ class MainWindow(QtWidgets.QMainWindow):
     @needsClient
     def OpenLoadPlaylistFromFileDialog(self, shuffle=False):
         self.loadMediaBrowseSettings()
-        if isMacOS() and IsPySide:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.DontUseNativeDialog)
-        else:
-            options = QtWidgets.QFileDialog.Options()
+        options = QtWidgets.QFileDialog.Options()
         self.mediadirectory = ""
         currentdirectory = os.path.dirname(self._syncplayClient.getCurrentFile()["path"]) if self._syncplayClient.getCurrentFile() else None
         if currentdirectory and os.path.isdir(currentdirectory):
@@ -1150,10 +1090,7 @@ class MainWindow(QtWidgets.QMainWindow):
     @needsClient
     def OpenSavePlaylistToFileDialog(self):
         self.loadMediaBrowseSettings()
-        if isMacOS() and IsPySide:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.DontUseNativeDialog)
-        else:
-            options = QtWidgets.QFileDialog.Options()
+        options = QtWidgets.QFileDialog.Options()
         self.mediadirectory = ""
         currentdirectory = os.path.dirname(self._syncplayClient.getCurrentFile()["path"]) if self._syncplayClient.getCurrentFile() else None
         if currentdirectory and os.path.isdir(currentdirectory):
@@ -1325,10 +1262,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @needsClient
     def openAddMediaDirectoryDialog(self, MediaDirectoriesTextbox, MediaDirectoriesDialog):
-        if isMacOS() and IsPySide:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontUseNativeDialog)
-        else:
-            options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.ShowDirsOnly)
+        options = QtWidgets.QFileDialog.Options(QtWidgets.QFileDialog.ShowDirsOnly)
         folderName = str(QtWidgets.QFileDialog.getExistingDirectory(
             self, None, self.getInitialMediaDirectory(includeUserSpecifiedDirectories=False), options))
 
@@ -1981,12 +1915,7 @@ class MainWindow(QtWidgets.QMainWindow):
         urls = data.urls()
         if urls and urls[0].scheme() == 'file':
             url = event.mimeData().urls()[0]
-            if isMacOS() and IsPySide:
-                macURL = NSString.alloc().initWithString_(str(url.toString()))
-                pathString = macURL.stringByAddingPercentEscapesUsingEncoding_(NSUTF8StringEncoding)
-                dropfilepath = os.path.abspath(NSURL.URLWithString_(pathString).filePathURL().path())
-            else:
-                dropfilepath = os.path.abspath(str(url.toLocalFile()))
+            dropfilepath = os.path.abspath(str(url.toLocalFile()))
             if rewindFile == False:
                 self._syncplayClient.openFile(dropfilepath, resetPosition=False, fromUser=True)
             else:
@@ -2091,10 +2020,7 @@ class MainWindow(QtWidgets.QMainWindow):
         settings.beginGroup("MainWindow")
         self.resize(settings.value("size", QSize(700, 500)))
         movePos = settings.value("pos", QPoint(200, 200))
-        if not IsPySide6:
-            windowGeometry = QtWidgets.QApplication.desktop().availableGeometry(self)
-        else:
-            windowGeometry = QtWidgets.QApplication.primaryScreen().geometry()
+        windowGeometry = QtWidgets.QApplication.primaryScreen().geometry()
         posIsOnScreen = windowGeometry.contains(QtCore.QRect(movePos.x(), movePos.y(), 1, 1))
         if not posIsOnScreen:
             movePos = QPoint(200,200)

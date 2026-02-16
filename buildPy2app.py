@@ -17,8 +17,8 @@ DATA_FILES = [
 OPTIONS = {
     'iconfile': 'syncplay/resources/icon.icns',
     'extra_scripts': 'syncplayServer.py',
-    'includes': {'PySide2.QtCore', 'PySide2.QtUiTools', 'PySide2.QtGui', 'PySide2.QtWidgets', 'certifi', 'cffi', 'pem', 'charset_normalizer.md__mypyc'},
-    'excludes': {'PySide', 'PySide.QtCore', 'PySide.QtUiTools', 'PySide.QtGui', 'tkinter'},
+    'includes': {'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets', 'certifi', 'cffi', 'pem', 'charset_normalizer.md__mypyc'},
+    'excludes': {'PySide2', 'PySide2.QtCore', 'PySide2.QtGui', 'PySide2.QtWidgets', 'PySide', 'PySide.QtCore', 'PySide.QtGui', 'tkinter'},
     'qt_plugins': [
         'platforms/libqcocoa.dylib',
         'platforms/libqminimal.dylib',
