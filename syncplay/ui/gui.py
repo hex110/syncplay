@@ -21,11 +21,7 @@ from syncplay.utils import formatTime, sameFilename, sameFilesize, sameFiledurat
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import Qt, QSettings, QSize, QPoint, QUrl, QLine, QDateTime, QStandardPaths
 lastCheckedForUpdates = None
-from syncplay.vendor import darkdetect
-if isMacOS() or isWindows():
-    isDarkMode = darkdetect.isDark()
-else:
-    isDarkMode = None
+from syncplay.ui.theme import Colors
 
 
 class ConsoleInGUI(ConsoleUI):
@@ -128,10 +124,7 @@ class AboutDialog(QtWidgets.QDialog):
         nameLabel = QtWidgets.QLabel("<center><strong>Syncplay</strong></center>")
         nameLabel.setFont(QtGui.QFont("Helvetica", 18))
         linkLabel = QtWidgets.QLabel()
-        if isDarkMode:
-            linkLabel.setText(("<center><a href=\"https://syncplay.pl\" style=\"{}\">syncplay.pl</a></center>").format(constants.STYLE_DARK_ABOUT_LINK_COLOR))
-        else:
-            linkLabel.setText("<center><a href=\"https://syncplay.pl\">syncplay.pl</a></center>")
+        linkLabel.setText(("<center><a href=\"https://syncplay.pl\" style=\"{}\">syncplay.pl</a></center>").format(constants.STYLE_DARK_ABOUT_LINK_COLOR))
         linkLabel.setOpenExternalLinks(True)
         versionExtString = version + revision
         versionLabel = QtWidgets.QLabel(
@@ -322,17 +315,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 fileIsAvailable = self.selfWindow.isFileAvailable(itemFilename)
                 fileIsUntrusted = self.selfWindow.isItemUntrusted(itemFilename)
                 if fileIsUntrusted:
-                    if isDarkMode:
-                        self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_DARK_UNTRUSTEDITEM_COLOR)))
-                    else:
-                        self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_UNTRUSTEDITEM_COLOR)))
+                    self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(Colors.UNTRUSTED)))
                 elif fileIsAvailable:
                     self.item(item).setForeground(QtGui.QBrush(self.selfWindow.palette().color(QtGui.QPalette.Text)))
                 else:
-                    if isDarkMode:
-                        self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_DARK_DIFFERENTITEM_COLOR)))
-                    else:
-                        self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_DIFFERENTITEM_COLOR)))
+                    self.item(item).setForeground(QtGui.QBrush(QtGui.QColor(Colors.DIFFERENT_FILE)))
             self.selfWindow._syncplayClient.setFilenameWatchlist(self.selfWindow.newWatchlist)
             self.forceUpdate()
 
@@ -643,7 +630,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         sameDuration = sameFileduration(user.file['duration'], currentUser.file['duration'])
                         underlinefont = QtGui.QFont()
                         underlinefont.setUnderline(True)
-                        differentItemColor = constants.STYLE_DARK_DIFFERENTITEM_COLOR if isDarkMode else constants.STYLE_DIFFERENTITEM_COLOR
+                        differentItemColor = Colors.DIFFERENT_FILE
                         if sameRoom:
                             if not sameName:
                                 filenameitem.setForeground(QtGui.QBrush(QtGui.QColor(differentItemColor)))
@@ -661,10 +648,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     filedurationitem = QtGui.QStandardItem("")
                     filesizeitem = QtGui.QStandardItem("")
                     if room == currentUser.room:
-                        if isDarkMode:
-                            filenameitem.setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_DARK_NOFILEITEM_COLOR)))
-                        else:
-                            filenameitem.setForeground(QtGui.QBrush(QtGui.QColor(constants.STYLE_NOFILEITEM_COLOR)))
+                        filenameitem.setForeground(QtGui.QBrush(QtGui.QColor(Colors.NO_FILE)))
                 font = QtGui.QFont()
                 if currentUser.username == user.username:
                     font.setWeight(QtGui.QFont.Bold)
@@ -902,10 +886,7 @@ class MainWindow(QtWidgets.QMainWindow):
         message = message.replace("&lt;a href=&quot;https://mpv.io/&quot;&gt;", '<a href="https://mpv.io/">').replace("&lt;/a&gt;", "</a>")
         message = message.replace("&lt;a href=&quot;https://github.com/stax76/mpv.net/&quot;&gt;", '<a href="https://github.com/stax76/mpv.net/">').replace("&lt;/a&gt;", "</a>")
         message = message.replace("\n", "<br />")
-        if isDarkMode:
-            message = "<span style=\"{}\">".format(constants.STYLE_DARK_ERRORNOTIFICATION) + message + "</span>"
-        else:
-            message = "<span style=\"{}\">".format(constants.STYLE_ERRORNOTIFICATION) + message + "</span>"
+        message = "<span style=\"{}\">".format(constants.STYLE_DARK_ERRORNOTIFICATION) + message + "</span>"
         self.newMessage(time.strftime(constants.UI_TIME_FORMAT, time.localtime()) + message + "<br />")
 
     @needsClient
@@ -1377,154 +1358,58 @@ class MainWindow(QtWidgets.QMainWindow):
             self._syncplayClient.sendChat(chatText)
 
     def addTopLayout(self, window):
-        window.topSplit = self.topSplitter(Qt.Horizontal, self)
+        # ── Zone A (Left): Playlist + User List ─────────────────────────────
+        window.zoneAFrame = QtWidgets.QFrame()
+        window.zoneAFrame.setObjectName("panelZoneA")
+        zoneALayout = QtWidgets.QVBoxLayout()
+        zoneALayout.setContentsMargins(4, 4, 0, 4)
+        zoneALayout.setSpacing(0)
+        window.zoneAFrame.setLayout(zoneALayout)
 
-        window.outputLayout = QtWidgets.QVBoxLayout()
-        window.outputbox = QtWidgets.QTextBrowser()
-        if isDarkMode: window.outputbox.document().setDefaultStyleSheet(constants.STYLE_DARK_LINKS_COLOR);
-        window.outputbox.setReadOnly(True)
-        window.outputbox.setTextInteractionFlags(window.outputbox.textInteractionFlags() | Qt.TextSelectableByKeyboard)
-        window.outputbox.setOpenExternalLinks(True)
-        window.outputbox.unsetCursor()
-        window.outputbox.moveCursor(QtGui.QTextCursor.End)
-        window.outputbox.insertHtml(constants.STYLE_CONTACT_INFO.format(getMessage("contact-label")))
-        window.outputbox.moveCursor(QtGui.QTextCursor.End)
-        window.outputbox.setCursorWidth(0)
-        if not isMacOS(): window.outputbox.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-
-        window.outputlabel = QtWidgets.QLabel(getMessage("notifications-heading-label"))
-        window.outputlabel.setMinimumHeight(27)
-        window.chatInput = QtWidgets.QLineEdit()
-        window.chatInput.setMaxLength(constants.MAX_CHAT_MESSAGE_LENGTH)
-        window.chatInput.returnPressed.connect(self.sendChatMessage)
-        window.chatButton = QtWidgets.QPushButton(
-            QtGui.QPixmap(resourcespath + 'email_go.png'),
-            getMessage("sendmessage-label"))
-        window.chatButton.pressed.connect(self.sendChatMessage)
-        window.chatLayout = QtWidgets.QHBoxLayout()
-        window.chatFrame = QtWidgets.QFrame()
-        window.chatFrame.setLayout(self.chatLayout)
-        window.chatFrame.setContentsMargins(0, 0, 0, 0)
-        window.chatFrame.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        window.chatLayout.setContentsMargins(0, 0, 0, 0)
-        self.chatButton.setToolTip(getMessage("sendmessage-tooltip"))
-        window.chatLayout.addWidget(window.chatInput)
-        window.chatLayout.addWidget(window.chatButton)
-        window.chatFrame.setMaximumHeight(window.chatFrame.sizeHint().height())
-        window.outputFrame = QtWidgets.QFrame()
-        window.outputFrame.setLineWidth(0)
-        window.outputFrame.setMidLineWidth(0)
-        if isMacOS(): window.outputLayout.setSpacing(8)
-        window.outputLayout.setContentsMargins(0, 0, 0, 0)
-        window.outputLayout.addWidget(window.outputlabel)
-        window.outputLayout.addWidget(window.outputbox)
-        window.outputLayout.addWidget(window.chatFrame)
-        window.outputFrame.setLayout(window.outputLayout)
-
-        window.listLayout = QtWidgets.QVBoxLayout()
-        window.listTreeModel = QtGui.QStandardItemModel()
-        window.listTreeView = QtWidgets.QTreeView()
-        window.listTreeView.setModel(window.listTreeModel)
-        window.listTreeView.setIndentation(21)
-        window.listTreeView.doubleClicked.connect(self.roomClicked)
-        self.listTreeView.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.listTreeView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.listTreeView.customContextMenuRequested.connect(self.openRoomMenu)
-        window.listlabel = QtWidgets.QLabel(getMessage("userlist-heading-label"))
-        if isMacOS():
-            window.listlabel.setMinimumHeight(21)
-            window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png').scaled(14, 14),"")
-            window.sslButton.setVisible(False)
-            window.sslButton.setFixedHeight(21)
-            window.sslButton.setFixedWidth(21)
-            window.sslButton.setMinimumSize(21, 21)
-            window.sslButton.setStyleSheet("QPushButton:!hover{border: 1px solid gray;} QPushButton:hover{border:2px solid black;}")
-        else:
-            window.listlabel.setMinimumHeight(27)
-            window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png'),"")
-            window.sslButton.setVisible(False)
-            window.sslButton.setFixedHeight(27)
-            window.sslButton.setFixedWidth(27)
-        window.sslButton.pressed.connect(self.openSSLDetails)
-        window.sslButton.setToolTip(getMessage("sslconnection-tooltip"))
-        window.listFrame = QtWidgets.QFrame()
-        window.listFrame.setLineWidth(0)
-        window.listFrame.setMidLineWidth(0)
-        window.listFrame.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        window.listLayout.setContentsMargins(0, 0, 0, 0)
-        if isMacOS(): window.listLayout.setSpacing(8)
-
-        window.userlistLayout = QtWidgets.QGridLayout()
-        window.userlistFrame = QtWidgets.QFrame()
-        window.userlistFrame.setLineWidth(0)
-        window.userlistFrame.setMidLineWidth(0)
-        window.userlistFrame.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        window.userlistLayout.setContentsMargins(0, 0, 0, 0)
-        window.userlistFrame.setLayout(window.userlistLayout)
-        window.userlistLayout.addWidget(window.listlabel, 0, 0, Qt.AlignLeft)
-        window.userlistLayout.addWidget(window.sslButton, 0, 2,  Qt.AlignRight)
-        window.userlistLayout.addWidget(window.listTreeView, 1, 0, 1, 3)
-        if isMacOS(): window.userlistLayout.setContentsMargins(3, 0, 3, 0)
-
+        # Vertical splitter for Playlist (top) / Users (bottom)
         window.listSplit = QtWidgets.QSplitter(Qt.Vertical, self)
-        window.listSplit.setHandleWidth(6)
-        window.listSplit.setStyle(QtWidgets.QStyleFactory.create("fusion"))
-        window.listSplit.addWidget(window.userlistFrame)
-        window.listLayout.addWidget(window.listSplit)
-        window.roomsCombobox = QtWidgets.QComboBox(self)
-        window.roomsCombobox.setEditable(True)
-        caseSensitiveCompleter = QtWidgets.QCompleter(self)
-        caseSensitiveCompleter.setCaseSensitivity(Qt.CaseSensitive)
-        window.roomsCombobox.setCompleter(caseSensitiveCompleter)
-        #window.roomsCombobox.setMaxLength(constants.MAX_ROOM_NAME_LENGTH)
-        window.roomButton = QtWidgets.QPushButton(
-            QtGui.QPixmap(resourcespath + 'door_in.png'),
-            getMessage("joinroom-label"))
-        window.roomButton.pressed.connect(self.joinRoom)
-        window.roomButton.setFixedWidth(window.roomButton.sizeHint().width()+3)
-        window.roomLayout = QtWidgets.QHBoxLayout()
-        window.roomFrame = QtWidgets.QFrame()
-        window.roomFrame.setLayout(self.roomLayout)
-        window.roomFrame.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        if isMacOS():
-            window.roomLayout.setSpacing(8)
-            window.roomLayout.setContentsMargins(3, 0, 0, 0)
-        else:
-            window.roomFrame.setContentsMargins(0, 0, 0, 0)
-            window.roomLayout.setContentsMargins(0, 0, 0, 0)
-        self.roomButton.setToolTip(getMessage("joinroom-tooltip"))
-        window.roomLayout.addWidget(window.roomsCombobox)
-        window.roomLayout.addWidget(window.roomButton)
-        window.roomFrame.setMaximumHeight(window.roomFrame.sizeHint().height())
-        window.listLayout.addWidget(window.roomFrame, Qt.AlignRight)
+        window.listSplit.setHandleWidth(2)
 
-        window.listFrame.setLayout(window.listLayout)
-        if isMacOS(): window.listFrame.setMinimumHeight(window.outputFrame.height())
-
-        window.topSplit.addWidget(window.outputFrame)
-        window.topSplit.addWidget(window.listFrame)
-        window.topSplit.setHandleWidth(6)
-        window.topSplit.setStretchFactor(0, 4)
-        window.topSplit.setStretchFactor(1, 5)
-        window.topSplit.setStyle(QtWidgets.QStyleFactory.create("fusion"))
-        window.mainLayout.addWidget(window.topSplit)
-        window.topSplit.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
-
-    def addBottomLayout(self, window):
-        window.bottomLayout = QtWidgets.QHBoxLayout()
-        window.bottomFrame = QtWidgets.QFrame()
-        window.bottomFrame.setLayout(window.bottomLayout)
-        window.bottomLayout.setContentsMargins(0, 0, 0, 0)
-        if isMacOS(): window.bottomLayout.setSpacing(0)
-
-        self.addPlaybackLayout(window)
-
+        # ── Playlist Panel ──────────────────────────────────────────────────
         window.playlistGroup = self.PlaylistGroupBox(getMessage("sharedplaylistenabled-label"))
         window.playlistGroup.setCheckable(True)
         window.playlistGroup.toggled.connect(self.changePlaylistEnabledState)
-        window.playlistLayout = QtWidgets.QHBoxLayout()
+        window.playlistLayout = QtWidgets.QVBoxLayout()
         window.playlistGroup.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         window.playlistGroup.setAcceptDrops(True)
+
+        # Playlist toolbar (surfaced actions instead of context-menu-only)
+        window.playlistToolbar = QtWidgets.QHBoxLayout()
+        window.playlistToolbar.setContentsMargins(0, 0, 0, 4)
+        window.playlistToolbar.setSpacing(4)
+
+        window.addFileButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'film_add.png'), getMessage("addfilestoplaylist-menu-label"))
+        window.addFileButton.setProperty("buttonTier", "secondary")
+        window.addFileButton.pressed.connect(self.OpenAddFilesToPlaylistDialog)
+        window.addFileButton.setToolTip(getMessage("addfilestoplaylist-menu-label"))
+
+        window.addURLButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'world_add.png'), getMessage("addurlstoplaylist-menu-label"))
+        window.addURLButton.setProperty("buttonTier", "secondary")
+        window.addURLButton.pressed.connect(self.OpenAddURIsToPlaylistDialog)
+        window.addURLButton.setToolTip(getMessage("addurlstoplaylist-menu-label"))
+
+        window.shuffleButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_switch.png'), "")
+        window.shuffleButton.setProperty("buttonTier", "tertiary")
+        window.shuffleButton.pressed.connect(self.shuffleRemainingPlaylist)
+        window.shuffleButton.setToolTip(getMessage("shuffleremainingplaylist-menu-label"))
+
+        window.undoPlaylistButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_undo.png'), "")
+        window.undoPlaylistButton.setProperty("buttonTier", "tertiary")
+        window.undoPlaylistButton.pressed.connect(self.undoPlaylistChange)
+        window.undoPlaylistButton.setToolTip(getMessage("undoplaylist-menu-label"))
+
+        window.playlistToolbar.addWidget(window.addFileButton)
+        window.playlistToolbar.addWidget(window.addURLButton)
+        window.playlistToolbar.addStretch()
+        window.playlistToolbar.addWidget(window.shuffleButton)
+        window.playlistToolbar.addWidget(window.undoPlaylistButton)
+        window.playlistLayout.addLayout(window.playlistToolbar)
+
         window.playlist = self.PlaylistWidget()
         window.playlist.setWindow(window)
         window.playlist.setItemDelegate(self.PlaylistItemDelegate())
@@ -1546,11 +1431,151 @@ class MainWindow(QtWidgets.QMainWindow):
         playlistItem.setFont(noteFont)
         window.playlist.addItem(playlistItem)
         window.playlistLayout.addWidget(window.playlist)
-        window.playlistLayout.setAlignment(Qt.AlignTop)
         window.playlistGroup.setLayout(window.playlistLayout)
         window.listSplit.addWidget(window.playlistGroup)
 
+        # ── User List Panel ─────────────────────────────────────────────────
+        window.userlistFrame = QtWidgets.QFrame()
+        window.userlistFrame.setLineWidth(0)
+        window.userlistFrame.setMidLineWidth(0)
+        window.userlistFrame.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        window.userlistLayout = QtWidgets.QVBoxLayout()
+        window.userlistLayout.setContentsMargins(0, 0, 0, 0)
+        window.userlistLayout.setSpacing(4)
+        window.userlistFrame.setLayout(window.userlistLayout)
+
+        # User list header row
+        window.userlistHeaderLayout = QtWidgets.QHBoxLayout()
+        window.listlabel = QtWidgets.QLabel(getMessage("userlist-heading-label"))
+        window.listlabel.setObjectName("sectionLabel")
+        window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png').scaled(16, 16), "")
+        window.sslButton.setProperty("buttonTier", "tertiary")
+        window.sslButton.setVisible(False)
+        window.sslButton.setFixedSize(24, 24)
+        window.sslButton.pressed.connect(self.openSSLDetails)
+        window.sslButton.setToolTip(getMessage("sslconnection-tooltip"))
+        window.userlistHeaderLayout.addWidget(window.listlabel, 1)
+        window.userlistHeaderLayout.addWidget(window.sslButton, 0, Qt.AlignRight)
+        window.userlistLayout.addLayout(window.userlistHeaderLayout)
+
+        window.listTreeModel = QtGui.QStandardItemModel()
+        window.listTreeView = QtWidgets.QTreeView()
+        window.listTreeView.setModel(window.listTreeModel)
+        window.listTreeView.setIndentation(21)
+        window.listTreeView.doubleClicked.connect(self.roomClicked)
+        window.listTreeView.setContextMenuPolicy(Qt.CustomContextMenu)
+        window.listTreeView.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        window.listTreeView.customContextMenuRequested.connect(self.openRoomMenu)
+        window.userlistLayout.addWidget(window.listTreeView)
+
+        window.listSplit.addWidget(window.userlistFrame)
+        window.listSplit.setStretchFactor(0, 3)  # Playlist gets more space
+        window.listSplit.setStretchFactor(1, 2)  # Users get less space
+
+        zoneALayout.addWidget(window.listSplit)
+
+        # ── Zone B (Right): Notifications + Chat ────────────────────────────
+        window.zoneBFrame = QtWidgets.QFrame()
+        window.zoneBFrame.setObjectName("panelZoneB")
+        zoneBLayout = QtWidgets.QVBoxLayout()
+        zoneBLayout.setContentsMargins(0, 4, 4, 4)
+        zoneBLayout.setSpacing(4)
+        window.zoneBFrame.setLayout(zoneBLayout)
+
+        window.outputlabel = QtWidgets.QLabel(getMessage("notifications-heading-label"))
+        window.outputlabel.setObjectName("sectionLabel")
+        zoneBLayout.addWidget(window.outputlabel)
+
+        window.outputbox = QtWidgets.QTextBrowser()
+        window.outputbox.document().setDefaultStyleSheet(constants.STYLE_DARK_LINKS_COLOR)
+        window.outputbox.setReadOnly(True)
+        window.outputbox.setTextInteractionFlags(window.outputbox.textInteractionFlags() | Qt.TextSelectableByKeyboard)
+        window.outputbox.setOpenExternalLinks(True)
+        window.outputbox.unsetCursor()
+        window.outputbox.moveCursor(QtGui.QTextCursor.End)
+        window.outputbox.insertHtml(constants.STYLE_CONTACT_INFO.format(getMessage("contact-label")))
+        window.outputbox.moveCursor(QtGui.QTextCursor.End)
+        window.outputbox.setCursorWidth(0)
+        zoneBLayout.addWidget(window.outputbox)
+
+        # Playback frame (hidden by default, toggled from menu)
+        self.addPlaybackLayout(window)
+        zoneBLayout.addWidget(window.playbackFrame)
+
+        # Chat input row
+        window.chatLayout = QtWidgets.QHBoxLayout()
+        window.chatLayout.setContentsMargins(0, 0, 0, 0)
+        window.chatLayout.setSpacing(4)
+        window.chatInput = QtWidgets.QLineEdit()
+        window.chatInput.setMaxLength(constants.MAX_CHAT_MESSAGE_LENGTH)
+        window.chatInput.setPlaceholderText(getMessage("sendmessage-label"))
+        window.chatInput.returnPressed.connect(self.sendChatMessage)
+        window.chatButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'email_go.png'), "")
+        window.chatButton.setProperty("buttonTier", "tertiary")
+        window.chatButton.setFixedSize(32, 32)
+        window.chatButton.pressed.connect(self.sendChatMessage)
+        window.chatButton.setToolTip(getMessage("sendmessage-tooltip"))
+        window.chatLayout.addWidget(window.chatInput)
+        window.chatLayout.addWidget(window.chatButton)
+        window.chatFrame = QtWidgets.QFrame()
+        window.chatFrame.setLayout(window.chatLayout)
+        window.chatFrame.setContentsMargins(0, 0, 0, 0)
+        window.chatFrame.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum)
+        zoneBLayout.addWidget(window.chatFrame)
+
+        # ── Assemble Zones A + B via horizontal splitter ────────────────────
+        window.topSplit = self.topSplitter(Qt.Horizontal, self)
+        window.topSplit.addWidget(window.zoneAFrame)
+        window.topSplit.addWidget(window.zoneBFrame)
+        window.topSplit.setHandleWidth(2)
+        window.topSplit.setStretchFactor(0, 7)   # Zone A: ~65%
+        window.topSplit.setStretchFactor(1, 4)   # Zone B: ~35%
+        window.topSplit.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        window.mainLayout.addWidget(window.topSplit)
+
+        # Keep references that other methods expect
+        window.outputFrame = window.zoneBFrame
+        window.listFrame = window.zoneAFrame
+        window.listLayout = zoneALayout
+
+    def addBottomLayout(self, window):
+        # ── Zone C: Control Deck (fixed-height footer) ──────────────────────
+        window.controlDeck = QtWidgets.QFrame()
+        window.controlDeck.setObjectName("controlDeck")
+        window.controlDeck.setFixedHeight(48)
+        deckLayout = QtWidgets.QHBoxLayout()
+        deckLayout.setContentsMargins(10, 4, 10, 4)
+        deckLayout.setSpacing(8)
+        window.controlDeck.setLayout(deckLayout)
+
+        # ── Room selector ───────────────────────────────────────────────────
+        window.roomsCombobox = QtWidgets.QComboBox(self)
+        window.roomsCombobox.setEditable(True)
+        window.roomsCombobox.setMinimumWidth(160)
+        caseSensitiveCompleter = QtWidgets.QCompleter(self)
+        caseSensitiveCompleter.setCaseSensitivity(Qt.CaseSensitive)
+        window.roomsCombobox.setCompleter(caseSensitiveCompleter)
+
+        window.roomButton = QtWidgets.QPushButton(
+            QtGui.QPixmap(resourcespath + 'door_in.png'),
+            getMessage("joinroom-label"))
+        window.roomButton.setProperty("buttonTier", "secondary")
+        window.roomButton.pressed.connect(self.joinRoom)
+        window.roomButton.setToolTip(getMessage("joinroom-tooltip"))
+
+        deckLayout.addWidget(window.roomsCombobox)
+        deckLayout.addWidget(window.roomButton)
+
+        # Vertical separator
+        sep1 = QtWidgets.QFrame()
+        sep1.setFrameShape(QtWidgets.QFrame.VLine)
+        sep1.setFrameShadow(QtWidgets.QFrame.Sunken)
+        deckLayout.addWidget(sep1)
+
+        # ── Ready button (Tier 1 Primary) ───────────────────────────────────
         window.readyPushButton = QtWidgets.QPushButton()
+        window.readyPushButton.setObjectName("readyButton")
+        window.readyPushButton.setProperty("buttonTier", "primary")
         readyFont = QtGui.QFont()
         readyFont.setWeight(QtGui.QFont.Bold)
         window.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
@@ -1558,17 +1583,26 @@ class MainWindow(QtWidgets.QMainWindow):
         window.readyPushButton.setAutoExclusive(False)
         window.readyPushButton.toggled.connect(self.changeReadyState)
         window.readyPushButton.setFont(readyFont)
-        window.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON)
         window.readyPushButton.setToolTip(getMessage("ready-tooltip"))
-        window.listLayout.addWidget(window.readyPushButton, Qt.AlignRight)
-        if isMacOS(): window.listLayout.setContentsMargins(0, 0, 0, 10)
+        window.readyPushButton.setMinimumWidth(120)
+        deckLayout.addWidget(window.readyPushButton)
 
-        window.autoplayLayout = QtWidgets.QHBoxLayout()
+        # Vertical separator
+        sep2 = QtWidgets.QFrame()
+        sep2.setFrameShape(QtWidgets.QFrame.VLine)
+        sep2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        deckLayout.addWidget(sep2)
+
+        # ── Autoplay controls ───────────────────────────────────────────────
         window.autoplayFrame = QtWidgets.QFrame()
         window.autoplayFrame.setVisible(False)
-
+        window.autoplayLayout = QtWidgets.QHBoxLayout()
+        window.autoplayLayout.setContentsMargins(0, 0, 0, 0)
+        window.autoplayLayout.setSpacing(6)
         window.autoplayFrame.setLayout(window.autoplayLayout)
+
         window.autoplayPushButton = QtWidgets.QPushButton()
+        window.autoplayPushButton.setProperty("buttonTier", "secondary")
         autoPlayFont = QtGui.QFont()
         autoPlayFont.setWeight(QtGui.QFont.Bold)
         window.autoplayPushButton.setText(getMessage("autoplay-guipushbuttonlabel"))
@@ -1576,34 +1610,34 @@ class MainWindow(QtWidgets.QMainWindow):
         window.autoplayPushButton.setAutoExclusive(False)
         window.autoplayPushButton.toggled.connect(self.changeAutoplayState)
         window.autoplayPushButton.setFont(autoPlayFont)
-        if isMacOS():
-            window.autoplayFrame.setMinimumWidth(window.listFrame.sizeHint().width())
-            window.autoplayLayout.setSpacing(15)
-            window.autoplayLayout.setContentsMargins(0, 8, 3, 3)
-            window.autoplayPushButton.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        else:
-            window.autoplayLayout.setContentsMargins(0, 0, 0, 0)
-            window.autoplayPushButton.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        window.autoplayPushButton.setStyleSheet(constants.STYLE_AUTO_PLAY_PUSHBUTTON)
         window.autoplayPushButton.setToolTip(getMessage("autoplay-tooltip"))
+
         window.autoplayLabel = QtWidgets.QLabel(getMessage("autoplay-minimum-label"))
-        window.autoplayLabel.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        window.autoplayLabel.setMaximumWidth(window.autoplayLabel.minimumSizeHint().width())
         window.autoplayLabel.setToolTip(getMessage("autoplay-tooltip"))
+
         window.autoplayThresholdSpinbox = QtWidgets.QSpinBox()
-        window.autoplayThresholdSpinbox.setMaximumWidth(window.autoplayThresholdSpinbox.minimumSizeHint().width())
         window.autoplayThresholdSpinbox.setMinimum(2)
         window.autoplayThresholdSpinbox.setMaximum(99)
         window.autoplayThresholdSpinbox.setToolTip(getMessage("autoplay-tooltip"))
         window.autoplayThresholdSpinbox.valueChanged.connect(self.changeAutoplayThreshold)
-        window.autoplayLayout.addWidget(window.autoplayPushButton, Qt.AlignRight)
-        window.autoplayLayout.addWidget(window.autoplayLabel, Qt.AlignRight)
-        window.autoplayLayout.addWidget(window.autoplayThresholdSpinbox, Qt.AlignRight)
 
-        window.listLayout.addWidget(window.autoplayFrame, Qt.AlignLeft)
-        window.autoplayFrame.setMaximumHeight(window.autoplayFrame.sizeHint().height())
-        window.mainLayout.addWidget(window.bottomFrame, Qt.AlignLeft)
-        window.bottomFrame.setMaximumHeight(window.bottomFrame.minimumSizeHint().height())
+        window.autoplayLayout.addWidget(window.autoplayPushButton)
+        window.autoplayLayout.addWidget(window.autoplayLabel)
+        window.autoplayLayout.addWidget(window.autoplayThresholdSpinbox)
+
+        deckLayout.addWidget(window.autoplayFrame)
+
+        deckLayout.addStretch()  # Push remaining items to the right
+
+        # Keep reference for addWidget
+        window.bottomFrame = window.controlDeck
+        window.bottomLayout = deckLayout
+
+        # Legacy references needed by other methods
+        window.roomLayout = deckLayout
+        window.roomFrame = window.controlDeck
+
+        window.mainLayout.addWidget(window.controlDeck)
 
     def addPlaybackLayout(self, window):
         window.playbackFrame = QtWidgets.QFrame()
@@ -1612,33 +1646,41 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playbackLayout = QtWidgets.QHBoxLayout()
         window.playbackLayout.setAlignment(Qt.AlignLeft)
         window.playbackLayout.setContentsMargins(0, 0, 0, 0)
+        window.playbackLayout.setSpacing(4)
         window.playbackFrame.setLayout(window.playbackLayout)
+
         window.seekInput = QtWidgets.QLineEdit()
         window.seekInput.returnPressed.connect(self.seekFromButton)
-        window.seekButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'clock_go.png'), "")
-        window.seekButton.setToolTip(getMessage("seektime-menu-label"))
-        window.seekButton.pressed.connect(self.seekFromButton)
         window.seekInput.setText("0:00")
         window.seekInput.setFixedWidth(60)
-        window.playbackLayout.addWidget(window.seekInput)
-        window.playbackLayout.addWidget(window.seekButton)
+
+        window.seekButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'clock_go.png'), "")
+        window.seekButton.setProperty("buttonTier", "tertiary")
+        window.seekButton.setToolTip(getMessage("seektime-menu-label"))
+        window.seekButton.pressed.connect(self.seekFromButton)
+
         window.unseekButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_undo.png'), "")
+        window.unseekButton.setProperty("buttonTier", "tertiary")
         window.unseekButton.setToolTip(getMessage("undoseek-menu-label"))
         window.unseekButton.pressed.connect(self.undoSeek)
 
-        window.miscLayout = QtWidgets.QHBoxLayout()
-        window.playbackLayout.addWidget(window.unseekButton)
         window.playButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'control_play_blue.png'), "")
+        window.playButton.setProperty("buttonTier", "tertiary")
         window.playButton.setToolTip(getMessage("play-menu-label"))
         window.playButton.pressed.connect(self.play)
-        window.playbackLayout.addWidget(window.playButton)
+
         window.pauseButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'control_pause_blue.png'), "")
+        window.pauseButton.setProperty("buttonTier", "tertiary")
         window.pauseButton.setToolTip(getMessage("pause-menu-label"))
         window.pauseButton.pressed.connect(self.pause)
+
+        window.playbackLayout.addWidget(window.seekInput)
+        window.playbackLayout.addWidget(window.seekButton)
+        window.playbackLayout.addWidget(window.unseekButton)
+        window.playbackLayout.addWidget(window.playButton)
         window.playbackLayout.addWidget(window.pauseButton)
         window.playbackFrame.setMaximumHeight(window.playbackFrame.sizeHint().height())
-        window.playbackFrame.setMaximumWidth(window.playbackFrame.sizeHint().width())
-        window.outputLayout.addWidget(window.playbackFrame)
+        window.miscLayout = QtWidgets.QHBoxLayout()  # Keep reference for compatibility
 
     def loadMenubar(self, window, passedBar):
         if passedBar is not None:
@@ -2063,14 +2105,18 @@ class MainWindow(QtWidgets.QMainWindow):
         if isMacOS():
             self.setWindowFlags(self.windowFlags())
         else:
-            try:    
+            try:
                 self.setWindowFlags(self.windowFlags() & Qt.AA_DontUseNativeMenuBar)
             except TypeError:
                 self.setWindowFlags(self.windowFlags())
+
         self.setWindowTitle("Syncplay v" + version + revision)
         self.mainLayout = QtWidgets.QVBoxLayout()
-        self.addTopLayout(self)
-        self.addBottomLayout(self)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.setSpacing(0)
+
+        self.addTopLayout(self)     # Zones A + B
+        self.addBottomLayout(self)  # Zone C (Control Deck)
         self.loadMenubar(self, passedBar)
         self.populateMenubar(self)
         self.addMainFrame(self)

@@ -531,15 +531,8 @@ class ConfigurationGetter(object):
                 if QCoreApplication.instance() is None:
                     self.app = QtWidgets.QApplication(sys.argv)
                     self.app.setDesktopFileName("syncplay")
-                    if isWindows():
-                        try:
-                            from syncplay.vendor import darkdetect
-                            isDarkMode = darkdetect.isDark()
-                        except:
-                            isDarkMode = False
-                        if isDarkMode:
-                            self.app.setStyle(QtWidgets.QStyleFactory.create("fusion"))
-                            self.app.setPalette(self.getDarkPalette(QtGui))
+                    from syncplay.ui.theme import apply_theme
+                    apply_theme(self.app)
                 qt5reactor.install()
                 if isMacOS():
                     import appnope
