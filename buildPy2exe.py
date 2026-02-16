@@ -621,12 +621,18 @@ def pruneUnneededLibraries():
 def copyQtPlugins(paths):
     import shutil
     from PySide6 import QtCore
-    basePath = QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.PluginsPath)
+    # Updated for PySide6:
+    basePath = QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.LibraryPath.PluginsPath)
     basePath = basePath.replace('/', '\\')
     destBase = os.getcwd() + '\\' + OUT_DIR
     for elem in paths:
         elemDir, elemName = os.path.split(elem)
         source = basePath + '\\' + elem
+        # Handle cases where source might not exist (just in case)
+        if not os.path.exists(source):
+            print(f"Warning: Plugin not found at {source}")
+            continue
+            
         dest = destBase + '\\' + elem
         destDir = destBase + '\\' + elemDir
         os.makedirs(destDir, exist_ok=True)
@@ -655,7 +661,7 @@ resources = [
 resources.extend(guiIcons)
 intf_resources = ["syncplay/resources/lua/intf/syncplay.lua"]
 
-qt_plugins = ['platforms\\qwindows.dll', 'styles\\qwindowsvistastyle.dll']
+qt_plugins = ['platforms\\qwindows.dll']
 
 common_info = dict(
     name='Syncplay',

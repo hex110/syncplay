@@ -17,19 +17,21 @@ DATA_FILES = [
 OPTIONS = {
     'iconfile': 'syncplay/resources/icon.icns',
     'extra_scripts': 'syncplayServer.py',
-    'includes': {'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets', 'certifi', 'cffi', 'pem', 'charset_normalizer.md__mypyc'},
+    # Added PySide6.QtNetwork
+    'includes': {'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets', 'PySide6.QtNetwork', 'certifi', 'cffi', 'pem', 'charset_normalizer.md__mypyc'},
     'excludes': {'PySide2', 'PySide2.QtCore', 'PySide2.QtGui', 'PySide2.QtWidgets', 'PySide', 'PySide.QtCore', 'PySide.QtGui', 'tkinter'},
     'qt_plugins': [
         'platforms/libqcocoa.dylib',
         'platforms/libqminimal.dylib',
-        'platforms/libqoffscreen.dylib',
-        'styles/libqmacstyle.dylib'
+        'platforms/libqoffscreen.dylib'
+        # 'styles/libqmacstyle.dylib'  <-- REMOVED (Does not exist in Qt6)
     ],
     'plist': {
         'CFBundleName': 'Syncplay',
         'CFBundleShortVersionString': syncplay.version,
         'CFBundleIdentifier': 'pl.syncplay.Syncplay',
-        'LSMinimumSystemVersion': '10.12.0',
+        # Updated to 10.14.0 (Qt6 requirement)
+        'LSMinimumSystemVersion': '10.14.0', 
         'NSHumanReadableCopyright': 'Copyright © 2019 Syncplay All Rights Reserved',
     }
 }
