@@ -114,6 +114,8 @@ en = {
     "commandlist-notification/speed": "\tsp [speed] - set playback speed (e.g. sp 1.5). Without argument, shows current speed",
     "commandList-notification/queue": "\tqa [file/url] - add file or url to bottom of playlist",
     "commandList-notification/queueandselect": "\tqas [file/url] - add file or url to bottom of playlist and select it",
+    "commandList-notification/queuenext": "\tqan [file/url] - add file or url after the currently playing item",
+    "commandList-notification/queuenextandselect": "\tqans [file/url] - add file or url after the currently playing item and select it",
     "commandList-notification/playlist": "\tql - show the current playlist",
     "commandList-notification/select": "\tqs [index] - select given entry in the playlist",
     "commandList-notification/next": "\tqn - select next entry in the playlist",
