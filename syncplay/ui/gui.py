@@ -542,6 +542,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.chatInput.setReadOnly(True)
         if not featureList["sharedPlaylists"]:
             self.sharedPlaylistCheckbox.setEnabled(False)
+        if hasattr(self, 'speedAction'):
+            self.speedAction.setEnabled(featureList.get("speedSync", False))
+        if hasattr(self, 'speedButton'):
+            self.speedButton.setEnabled(featureList.get("speedSync", False))
+            self.speedInput.setEnabled(featureList.get("speedSync", False))
         self.chatInput.setMaxLength(constants.MAX_CHAT_MESSAGE_LENGTH)
         #self.roomsCombobox.setMaxLength(constants.MAX_ROOM_NAME_LENGTH)
 
@@ -982,6 +987,29 @@ class MainWindow(QtWidgets.QMainWindow):
         tmp_pos = self._syncplayClient.getPlayerPosition()
         self._syncplayClient.setPosition(self._syncplayClient.getPlayerPositionBeforeLastSeek())
         self._syncplayClient.setPlayerPositionBeforeLastSeek(tmp_pos)
+
+    def setSpeedDialog(self):
+        currentSpeed = str(self._syncplayClient.getGlobalSpeed()) if self._syncplayClient else "1.0"
+        newSpeed, ok = QtWidgets.QInputDialog.getText(
+            self, getMessage("setspeed-menu-label"),
+            getMessage("setspeed-msgbox-label"), QtWidgets.QLineEdit.Normal, currentSpeed)
+        if ok and newSpeed != '':
+            self._applySpeed(newSpeed)
+
+    def setSpeedFromButton(self):
+        self._applySpeed(self.speedInput.text())
+
+    @needsClient
+    def _applySpeed(self, speedText):
+        try:
+            speed = round(float(speedText), 2)
+        except ValueError:
+            self.showErrorMessage(getMessage("invalid-speed-value"))
+            return
+        if speed < 0.1 or speed > 10.0:
+            self.showErrorMessage(getMessage("invalid-speed-value"))
+            return
+        self._syncplayClient.setSpeed(speed)
 
     @needsClient
     def togglePause(self):
@@ -1724,6 +1752,15 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playbackLayout.addWidget(window.unseekButton)
         window.playbackLayout.addWidget(window.playButton)
         window.playbackLayout.addWidget(window.pauseButton)
+        window.speedInput = QtWidgets.QLineEdit()
+        window.speedInput.returnPressed.connect(self.setSpeedFromButton)
+        window.speedInput.setText("1.0")
+        window.speedInput.setFixedWidth(40)
+        window.speedButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'chevrons_right.png'), "")
+        window.speedButton.setToolTip(getMessage("setspeed-menu-label"))
+        window.speedButton.pressed.connect(self.setSpeedFromButton)
+        window.playbackLayout.addWidget(window.speedInput)
+        window.playbackLayout.addWidget(window.speedButton)
         window.playbackFrame.setMaximumHeight(window.playbackFrame.sizeHint().height())
         window.mainLayout.addWidget(window.playbackFrame)
 
@@ -1763,6 +1800,32 @@ class MainWindow(QtWidgets.QMainWindow):
             window.menuBar.insertMenu(window.editMenu.menuAction(), window.fileMenu)
         else:
             window.menuBar.addMenu(window.fileMenu)
+
+        # Room menu (was Advanced)
+
+        window.playbackMenu = QtWidgets.QMenu(getMessage("playback-menu-label"), self)
+        window.playAction = window.playbackMenu.addAction(
+            QtGui.QPixmap(resourcespath + 'control_play_blue.png'),
+            getMessage("play-menu-label"))
+        window.playAction.triggered.connect(self.play)
+        window.pauseAction = window.playbackMenu.addAction(
+            QtGui.QPixmap(resourcespath + 'control_pause_blue.png'),
+            getMessage("pause-menu-label"))
+        window.pauseAction.triggered.connect(self.pause)
+        window.seekAction = window.playbackMenu.addAction(
+            QtGui.QPixmap(resourcespath + 'clock_go.png'),
+            getMessage("seektime-menu-label"))
+        window.seekAction.triggered.connect(self.seekPositionDialog)
+        window.unseekAction = window.playbackMenu.addAction(
+            QtGui.QPixmap(resourcespath + 'arrow_undo.png'),
+            getMessage("undoseek-menu-label"))
+        window.unseekAction.triggered.connect(self.undoSeek)
+        window.speedAction = window.playbackMenu.addAction(
+            QtGui.QPixmap(resourcespath + 'chevrons_right.png'),
+            getMessage("setspeed-menu-label"))
+        window.speedAction.triggered.connect(self.setSpeedDialog)
+
+        window.menuBar.addMenu(window.playbackMenu)
 
         # Room menu (was Advanced)
 
