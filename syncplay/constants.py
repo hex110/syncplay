@@ -26,7 +26,7 @@ OSD_WARNING_MESSAGE_DURATION = 5.0
 NO_ALERT_OSD_WARNING_DURATION = 13.0
 MPC_OSD_POSITION = 1  # Right corner, 1 for left
 MPLAYER_OSD_LEVEL = 1
-UI_TIME_FORMAT = "[%X] "
+UI_TIME_FORMAT = "%H:%M "
 CONFIG_NAMES = [".syncplay", "syncplay.ini"]  # Syncplay searches first to last
 DEFAULT_CONFIG_NAME = "syncplay.ini"
 RECENT_CLIENT_THRESHOLD = "1.7.4"  # This and higher considered 'recent' clients (no warnings)
@@ -244,24 +244,23 @@ STYLE_READY_PUSHBUTTON_UNCHECKED = getValueForOS({
 STYLE_HEADER_BAR = """
     QFrame#headerBar {
         background-color: palette(window);
-        border-bottom: 1px solid palette(mid);
     }
 """
 STYLE_AUTO_PLAY_PUSHBUTTON = getValueForOS({
     OS_DEFAULT: "QPushButton { text-align: left; padding: 5px 5px 5px 5px; }",
     OS_MACOS: "QPushButton { text-align: left; padding: 10px 5px 10px 15px; margin: 0px 0px 0px -4px}"})
 STYLE_NOTIFICATIONBOX = "Username { color: #367AA9; font-weight:bold; }"
-STYLE_CONTACT_INFO = "<span style=\"color: grey\"><strong><small>{}</span><br /><br />"  # Contact info message
-STYLE_USER_MESSAGE = "<span style=\"{}\">&lt;{}&gt;</span> {}"
-STYLE_USERNAME = "color: #367AA9; font-weight:bold;"
+STYLE_CONTACT_INFO = "<div style=\"color: #72767d; font-size: small; line-height: 1.4; padding: 2px 0 6px 0; border-bottom: 1px solid #3e4046; margin-bottom: 6px;\">{}</div>"  # Contact info message
+STYLE_USER_MESSAGE = "<span style=\"{}\">{}</span>&nbsp; {}"
+STYLE_USERNAME = "color: #5865F2; font-weight: 600;"
 STYLE_ERRORNOTIFICATION = "color: red;"
 STYLE_DIFFERENTITEM_COLOR = 'red'
 STYLE_NOFILEITEM_COLOR = 'blue'
 STYLE_NOTCONTROLLER_COLOR = 'grey'
 STYLE_UNTRUSTEDITEM_COLOR = 'purple'
 
-STYLE_DARK_LINKS_COLOR = "a {color: #1A78D5; }"
-STYLE_DARK_ABOUT_LINK_COLOR = "color: #1A78D5;"
+STYLE_DARK_LINKS_COLOR = "a {color: #00AFF4; }"
+STYLE_DARK_ABOUT_LINK_COLOR = "color: #00AFF4;"
 STYLE_DARK_ERRORNOTIFICATION = "color: #E94F64;"
 STYLE_DARK_DIFFERENTITEM_COLOR = '#E94F64'
 STYLE_DARK_NOFILEITEM_COLOR = '#1A78D5'

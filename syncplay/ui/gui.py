@@ -345,6 +345,12 @@ class MainWindow(QtWidgets.QMainWindow):
         selfWindow = None
         playlistIndexFilename = None
 
+        def resizeEvent(self, event):
+            super().resizeEvent(event)
+            # Keep the empty-state overlay label sized to the viewport
+            if self.selfWindow and hasattr(self.selfWindow, 'playlistEmptyLabel'):
+                self.selfWindow.playlistEmptyLabel.setGeometry(self.viewport().rect())
+
         def setPlaylistIndexFilename(self, filename):
             if filename != self.playlistIndexFilename:
                 self.playlistIndexFilename = filename
@@ -392,6 +398,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     uniquePlaylist.append(item)
             self.insertItems(0, uniquePlaylist)
             self.updatePlaylistIndexIcon()
+            # Toggle empty-state overlay
+            if self.selfWindow and hasattr(self.selfWindow, 'playlistEmptyLabel'):
+                self.selfWindow.playlistEmptyLabel.setVisible(len(uniquePlaylist) == 0)
 
         def remove_selected_items(self):
             for item in self.selectedItems():
@@ -562,7 +571,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if noTimestamp:
             self.newMessage("{}<br />".format(message))
         else:
-            self.newMessage(time.strftime(constants.UI_TIME_FORMAT, time.localtime()) + message + "<br />")
+            timestamp = time.strftime(constants.UI_TIME_FORMAT, time.localtime())
+            self.newMessage("<span style=\"color: #72767d; font-size: small;\">{}</span>{}<br />".format(timestamp, message))
 
     @needsClient
     def getFileSwitchState(self, filename):
@@ -921,7 +931,8 @@ class MainWindow(QtWidgets.QMainWindow):
         message = message.replace("&lt;a href=&quot;https://github.com/stax76/mpv.net/&quot;&gt;", '<a href="https://github.com/stax76/mpv.net/">').replace("&lt;/a&gt;", "</a>")
         message = message.replace("\n", "<br />")
         message = "<span style=\"{}\">".format(constants.STYLE_DARK_ERRORNOTIFICATION) + message + "</span>"
-        self.newMessage(time.strftime(constants.UI_TIME_FORMAT, time.localtime()) + message + "<br />")
+        timestamp = time.strftime(constants.UI_TIME_FORMAT, time.localtime())
+        self.newMessage("<span style=\"color: #72767d; font-size: small;\">{}</span>{}<br />".format(timestamp, message))
 
     @needsClient
     def joinRoom(self, room=None):
@@ -1362,9 +1373,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def getPlaylistState(self):
         playlistItems = []
         for playlistItem in range(self.playlist.count()):
-            playlistItemText = self.playlist.item(playlistItem).text()
-            if playlistItemText != getMessage("playlist-instruction-item-message"):
-                playlistItems.append(playlistItemText)
+            playlistItems.append(self.playlist.item(playlistItem).text())
         return playlistItems
 
     def playlistChangeCheck(self):
@@ -1398,11 +1407,9 @@ class MainWindow(QtWidgets.QMainWindow):
         window.headerBar.setObjectName("headerBar")
         window.headerBar.setStyleSheet(constants.STYLE_HEADER_BAR)
         headerLayout = QtWidgets.QHBoxLayout()
-        headerLayout.setContentsMargins(8, 6, 8, 6)
+        headerLayout.setContentsMargins(10, 8, 10, 8)
 
         # Room display (label mode)
-        window.roomIcon = QtWidgets.QLabel()
-        window.roomIcon.setPixmap(QtGui.QPixmap(resourcespath + 'door_in.png'))
         window.roomLabel = QtWidgets.QLabel()
         roomFont = QtGui.QFont()
         roomFont.setWeight(QtGui.QFont.Bold)
@@ -1441,15 +1448,8 @@ class MainWindow(QtWidgets.QMainWindow):
         window.autoplayLayout.setSpacing(6)
         window.autoplayFrame.setLayout(window.autoplayLayout)
 
-        window.autoplayPushButton = QtWidgets.QPushButton()
-        autoPlayFont = QtGui.QFont()
-        autoPlayFont.setWeight(QtGui.QFont.Bold)
-        window.autoplayPushButton.setText(getMessage("autoplay-guipushbuttonlabel"))
-        window.autoplayPushButton.setCheckable(True)
-        window.autoplayPushButton.setAutoExclusive(False)
+        window.autoplayPushButton = QtWidgets.QCheckBox(getMessage("autoplay-guipushbuttonlabel"))
         window.autoplayPushButton.toggled.connect(self.changeAutoplayState)
-        window.autoplayPushButton.setFont(autoPlayFont)
-        window.autoplayPushButton.setStyleSheet(constants.STYLE_AUTO_PLAY_PUSHBUTTON)
         window.autoplayPushButton.setToolTip(getMessage("autoplay-tooltip"))
 
         window.autoplayLabel = QtWidgets.QLabel(getMessage("autoplay-minimum-label"))
@@ -1467,21 +1467,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Ready button (prominent, right-aligned)
         window.readyPushButton = QtWidgets.QPushButton()
-        readyFont = QtGui.QFont()
-        readyFont.setWeight(QtGui.QFont.Bold)
-        window.readyPushButton.setFont(readyFont)
+        window.readyPushButton.setProperty("buttonTier", "primary")
         window.readyPushButton.setCheckable(True)
         window.readyPushButton.setAutoExclusive(False)
         window.readyPushButton.toggled.connect(self.changeReadyState)
-        window.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_UNCHECKED)
         window.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
         window.readyPushButton.setToolTip(getMessage("ready-tooltip"))
-        # Pre-compute minimum width from the longer label to prevent layout shift
+        # Pre-compute fixed width from the longer label to prevent layout shift
         window.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
         readyWidth = window.readyPushButton.sizeHint().width()
         window.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
         notReadyWidth = window.readyPushButton.sizeHint().width()
-        window.readyPushButton.setMinimumWidth(max(readyWidth, notReadyWidth))
+        window.readyPushButton.setFixedWidth(max(readyWidth, notReadyWidth) + 4)
 
         # SSL button
         window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png').scaled(16, 16), "")
@@ -1490,7 +1487,6 @@ class MainWindow(QtWidgets.QMainWindow):
         window.sslButton.pressed.connect(self.openSSLDetails)
         window.sslButton.setToolTip(getMessage("sslconnection-tooltip"))
 
-        headerLayout.addWidget(window.roomIcon)
         headerLayout.addWidget(window.roomLabel)
         headerLayout.addWidget(window.changeRoomButton)
         headerLayout.addWidget(window.roomEditFrame)
@@ -1528,17 +1524,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ── Playlist Action Bar ─────────────────────────────────────────────
         window.playlistActionBar = QtWidgets.QHBoxLayout()
-        window.playlistActionBar.setContentsMargins(0, 4, 0, 4)
-        window.playlistActionBar.setSpacing(4)
+        window.playlistActionBar.setContentsMargins(4, 6, 4, 6)
+        window.playlistActionBar.setSpacing(6)
 
-        window.addFileButton = QtWidgets.QPushButton(
-            QtGui.QPixmap(resourcespath + 'film_add.png'),
-            getMessage("addfilestoplaylist-menu-label"))
+        window.addFileButton = QtWidgets.QPushButton(getMessage("addfilestoplaylist-menu-label"))
         window.addFileButton.pressed.connect(self.OpenAddFilesToPlaylistDialog)
 
-        window.addURLButton = QtWidgets.QPushButton(
-            QtGui.QPixmap(resourcespath + 'world_add.png'),
-            getMessage("addurlstoplaylist-menu-label"))
+        window.addURLButton = QtWidgets.QPushButton(getMessage("addurlstoplaylist-menu-label"))
         window.addURLButton.pressed.connect(self.OpenAddURIsToPlaylistDialog)
 
         window.playlistMoreButton = QtWidgets.QToolButton()
@@ -1559,13 +1551,8 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'shield_edit.png'), getMessage("settrusteddomains-menu-label"), lambda: self.openSetTrustedDomainsDialog())
         window.playlistMoreButton.setMenu(window.playlistMoreMenu)
 
-        window.sharedPlaylistCheckbox = QtWidgets.QPushButton()
-        window.sharedPlaylistCheckbox.setText(getMessage("sharedplaylistenabled-label"))
-        window.sharedPlaylistCheckbox.setCheckable(True)
-        window.sharedPlaylistCheckbox.setAutoExclusive(False)
+        window.sharedPlaylistCheckbox = QtWidgets.QCheckBox(getMessage("sharedplaylistenabled-label"))
         window.sharedPlaylistCheckbox.toggled.connect(self.changePlaylistEnabledState)
-        window.sharedPlaylistCheckbox.setStyleSheet(constants.STYLE_AUTO_PLAY_PUSHBUTTON)
-        window.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
 
         window.playlistActionBar.addWidget(window.addFileButton)
         window.playlistActionBar.addWidget(window.addURLButton)
@@ -1581,6 +1568,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playlistFrame = QtWidgets.QFrame()
         window.playlistFrame.setAcceptDrops(True)
         window.playlistLayout = QtWidgets.QVBoxLayout()
+        window.playlistLayout.setContentsMargins(4, 4, 8, 4)
 
         window.playlist = self.PlaylistWidget()
         window.playlist.setWindow(window)
@@ -1597,11 +1585,15 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playlist.customContextMenuRequested.connect(self.openPlaylistMenu)
         self.playlistUpdateTimer = task.LoopingCall(self.playlistChangeCheck)
         self.playlistUpdateTimer.start(0.1, True)
-        noteFont = QtGui.QFont()
-        noteFont.setItalic(True)
-        playlistItem = QtWidgets.QListWidgetItem(getMessage("playlist-instruction-item-message"))
-        playlistItem.setFont(noteFont)
-        window.playlist.addItem(playlistItem)
+
+        # Empty-state overlay (centered on playlist viewport)
+        window.playlistEmptyLabel = QtWidgets.QLabel(getMessage("playlist-instruction-item-message"), window.playlist.viewport())
+        window.playlistEmptyLabel.setAlignment(Qt.AlignCenter)
+        window.playlistEmptyLabel.setWordWrap(True)
+        window.playlistEmptyLabel.setStyleSheet(
+            "color: {}; font-style: italic; background: transparent; padding: 20px;".format(Colors.TEXT_MUTED))
+        window.playlistEmptyLabel.setAttribute(Qt.WA_TransparentForMouseEvents)
+
         window.playlistLayout.addWidget(window.playlist)
         window.playlistFrame.setLayout(window.playlistLayout)
         window.listSplit.addWidget(window.playlistFrame)
@@ -1612,8 +1604,8 @@ class MainWindow(QtWidgets.QMainWindow):
         window.userlistFrame.setMidLineWidth(0)
         window.userlistFrame.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         window.userlistLayout = QtWidgets.QVBoxLayout()
-        window.userlistLayout.setContentsMargins(0, 0, 0, 0)
-        window.userlistLayout.setSpacing(4)
+        window.userlistLayout.setContentsMargins(4, 4, 8, 4)
+        window.userlistLayout.setSpacing(2)
         window.userlistFrame.setLayout(window.userlistLayout)
 
         window.listlabel = QtWidgets.QLabel(getMessage("userlist-heading-label"))
@@ -1640,8 +1632,8 @@ class MainWindow(QtWidgets.QMainWindow):
         window.zoneBFrame = QtWidgets.QFrame()
         window.zoneBFrame.setObjectName("panelZoneB")
         zoneBLayout = QtWidgets.QVBoxLayout()
-        zoneBLayout.setContentsMargins(0, 4, 4, 4)
-        zoneBLayout.setSpacing(4)
+        zoneBLayout.setContentsMargins(8, 6, 8, 6)
+        zoneBLayout.setSpacing(2)
         window.zoneBFrame.setLayout(zoneBLayout)
 
         window.outputlabel = QtWidgets.QLabel(getMessage("notifications-heading-label"))
@@ -1649,7 +1641,8 @@ class MainWindow(QtWidgets.QMainWindow):
         zoneBLayout.addWidget(window.outputlabel)
 
         window.outputbox = QtWidgets.QTextBrowser()
-        window.outputbox.document().setDefaultStyleSheet(constants.STYLE_DARK_LINKS_COLOR)
+        window.outputbox.document().setDefaultStyleSheet(
+            "body { font-size: 11pt; } " + constants.STYLE_DARK_LINKS_COLOR)
         window.outputbox.setReadOnly(True)
         window.outputbox.setTextInteractionFlags(window.outputbox.textInteractionFlags() | Qt.TextSelectableByKeyboard)
         window.outputbox.setOpenExternalLinks(True)
@@ -1662,15 +1655,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Chat input row
         window.chatLayout = QtWidgets.QHBoxLayout()
-        window.chatLayout.setContentsMargins(0, 0, 0, 0)
-        window.chatLayout.setSpacing(4)
+        window.chatLayout.setContentsMargins(0, 4, 0, 0)
+        window.chatLayout.setSpacing(6)
         window.chatInput = QtWidgets.QLineEdit()
         window.chatInput.setMaxLength(constants.MAX_CHAT_MESSAGE_LENGTH)
-        window.chatInput.setPlaceholderText(getMessage("sendmessage-label"))
+        window.chatInput.setPlaceholderText(getMessage("chatinput-placeholder-label"))
         window.chatInput.returnPressed.connect(self.sendChatMessage)
-        window.chatButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'email_go.png'), "")
-        window.chatButton.setProperty("buttonTier", "tertiary")
-        window.chatButton.setFixedSize(32, 32)
+        window.chatButton = QtWidgets.QPushButton(getMessage("sendmessage-label"))
+        window.chatButton.setProperty("buttonTier", "secondary")
         window.chatButton.pressed.connect(self.sendChatMessage)
         window.chatButton.setToolTip(getMessage("sendmessage-tooltip"))
         window.chatLayout.addWidget(window.chatInput)
@@ -1893,10 +1885,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._syncplayClient.changePlaylistEnabledState(self.sharedPlaylistCheckbox.isChecked())
 
     def updateSharedPlaylistIcon(self):
-        if self.sharedPlaylistCheckbox.isChecked():
-            self.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'tick_checkbox.png'))
-        else:
-            self.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
+        pass  # QCheckBox handles its own indicator
 
     @needsClient
     def changeAutoplayThreshold(self, source=None):
@@ -1921,20 +1910,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateReadyIcon(self):
         ready = self.readyPushButton.isChecked()
         if ready:
-            self.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_CHECKED)
             self.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
-            self.readyPushButton.setIcon(QtGui.QPixmap(resourcespath + 'tick_checkbox.png'))
         else:
-            self.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_UNCHECKED)
             self.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
-            self.readyPushButton.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
 
     def updateAutoPlayIcon(self):
-        ready = self.autoplayPushButton.isChecked()
-        if ready:
-            self.autoplayPushButton.setIcon(QtGui.QPixmap(resourcespath + 'tick_checkbox.png'))
-        else:
-            self.autoplayPushButton.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
+        pass  # QCheckBox handles its own indicator
 
     def automaticUpdateCheck(self):
         currentDateTimeValue = QDateTime.currentDateTime()
@@ -2069,8 +2050,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def removePlaylistNote(self):
         if not self.clearedPlaylistNote:
-            for index in range(self.playlist.count()):
-                self.playlist.takeItem(0)
+            self.playlistEmptyLabel.setVisible(False)
             self.clearedPlaylistNote = True
 
     def addFolderToPlaylist(self, folderPath):

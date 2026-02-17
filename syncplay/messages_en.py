@@ -320,6 +320,7 @@ en = {
     "hideemptyrooms-menu-label": "Hide empty persistent rooms",
 
     "sendmessage-label": "Send",
+    "chatinput-placeholder-label": "Type a message\u2026",
 
     "ready-guipushbuttonlabel": "I'm ready to watch!",
     "notready-guipushbuttonlabel": "Not ready",
@@ -332,7 +333,7 @@ en = {
     "duration-heading-label": "Length",
     "filename-heading-label": "Filename",
     "notifications-heading-label": "Notifications",
-    "userlist-heading-label": "List of who is playing what",
+    "userlist-heading-label": "Users",
 
     "browseformedia-label": "Browse for media files",
 
@@ -559,7 +560,7 @@ en = {
     "setasready-menu-label": "Set {} as ready", # [Username]
     "setasnotready-menu-label": "Set {} as not ready", # [Username]
 
-    "playlist-instruction-item-message": "Drag file here to add it to the shared playlist.",
+    "playlist-instruction-item-message": "Drag files here or use the buttons above\nto add to the shared playlist.",
     "sharedplaylistenabled-tooltip": "Room operators can add files to a synced playlist to make it easy for everyone to watching the same thing. Configure media directories under 'Misc'.",
 
     "playlist-empty-error": "Playlist is currently empty.",
