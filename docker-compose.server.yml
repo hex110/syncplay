@@ -1,0 +1,18 @@
+services:
+  syncplay-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: syncplay-server
+    restart: unless-stopped
+    ports:
+      - "8999:8999"
+    command:
+      - "--port"
+      - "8999"
+      - "--isolate-rooms"
+    volumes:
+      - syncplay-data:/data
+
+volumes:
+  syncplay-data:
