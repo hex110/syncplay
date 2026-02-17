@@ -494,11 +494,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.console.addClient(client)
         self.config = self._syncplayClient.getConfig()
         self.roomsCombobox.setEditText(self._syncplayClient.getRoom())
+        self.roomLabel.setText("Room: " + self._syncplayClient.getRoom())
         self.fillRoomsCombobox()
         try:
-            self.playlistGroup.blockSignals(True)
-            self.playlistGroup.setChecked(self.config['sharedPlaylistEnabled'])
-            self.playlistGroup.blockSignals(False)
+            self.sharedPlaylistCheckbox.blockSignals(True)
+            self.sharedPlaylistCheckbox.setChecked(self.config['sharedPlaylistEnabled'])
+            self.sharedPlaylistCheckbox.blockSignals(False)
+            self.updateSharedPlaylistIcon()
             self._syncplayClient.setMediaDirectories(self.config["mediaSearchDirectories"])
             if not self.config["mediaSearchDirectories"]:
                 self._syncplayClient.ui.showErrorMessage(getMessage("no-media-directories-error"))
@@ -530,7 +532,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.chatFrame.setEnabled(False)
             self.chatInput.setReadOnly(True)
         if not featureList["sharedPlaylists"]:
-            self.playlistGroup.setEnabled(False)
+            self.sharedPlaylistCheckbox.setEnabled(False)
         self.chatInput.setMaxLength(constants.MAX_CHAT_MESSAGE_LENGTH)
         #self.roomsCombobox.setMaxLength(constants.MAX_ROOM_NAME_LENGTH)
 
@@ -733,39 +735,26 @@ class MainWindow(QtWidgets.QMainWindow):
             item = self.playlist.selectedIndexes()[0]
         else:
             item = None
+        if not item:
+            return
         menu = QtWidgets.QMenu()
 
-        if item:
-            firstFile = item.sibling(item.row(), 0).data()
-            pathFound = self._syncplayClient.findFilepath(firstFile) if not isURL(firstFile) else None
-            if self._syncplayClient.getCurrentFile() is None or firstFile != self._syncplayClient.getCurrentFile()["name"]:
-                if isURL(firstFile):
-                    menu.addAction(QtGui.QPixmap(resourcespath + "world_go.png"), getMessage("openstreamurl-menu-label"), lambda: self.openFile(firstFile, resetPosition=True, fromUser=True))
-                elif pathFound:
-                        menu.addAction(QtGui.QPixmap(resourcespath + "film_go.png"), getMessage("openmedia-menu-label"), lambda: self.openFile(pathFound, resetPosition=True, fromUser=True))
-            if pathFound:
-                menu.addAction(QtGui.QPixmap(resourcespath + "folder_film.png"),
-                               getMessage('open-containing-folder'),
-                               lambda: utils.open_system_file_browser(pathFound))
-            if self._syncplayClient.isUntrustedTrustableURI(firstFile):
-                domain = utils.getDomainFromURL(firstFile)
-                if domain:
-                    menu.addAction(QtGui.QPixmap(resourcespath + "shield_add.png"), getMessage("addtrusteddomain-menu-label").format(domain), lambda: self.addTrustedDomain(domain))
-            menu.addAction(QtGui.QPixmap(resourcespath + "delete.png"), getMessage("removefromplaylist-menu-label"), lambda: self.deleteSelectedPlaylistItems())
-            menu.addSeparator()
-        menu.addAction(QtGui.QPixmap(resourcespath + "arrow_switch.png"), getMessage("shuffleremainingplaylist-menu-label"), lambda: self.shuffleRemainingPlaylist())
-        menu.addAction(QtGui.QPixmap(resourcespath + "arrow_switch.png"), getMessage("shuffleentireplaylist-menu-label"), lambda: self.shuffleEntirePlaylist())
-        menu.addAction(QtGui.QPixmap(resourcespath + "arrow_undo.png"), getMessage("undoplaylist-menu-label"), lambda: self.undoPlaylistChange())
-        menu.addAction(QtGui.QPixmap(resourcespath + "film_edit.png"), getMessage("editplaylist-menu-label"), lambda: self.openEditPlaylistDialog())
-        menu.addAction(QtGui.QPixmap(resourcespath + "film_add.png"), getMessage("addfilestoplaylist-menu-label"), lambda: self.OpenAddFilesToPlaylistDialog())
-        menu.addAction(QtGui.QPixmap(resourcespath + "world_add.png"), getMessage("addurlstoplaylist-menu-label"), lambda: self.OpenAddURIsToPlaylistDialog())
-        menu.addSeparator()
-        menu.addAction(getMessage("loadplaylistfromfile-menu-label"),lambda: self.OpenLoadPlaylistFromFileDialog()) # TODO: Add icon
-        menu.addAction("Load and shuffle playlist from file",lambda: self.OpenLoadPlaylistFromFileDialog(shuffle=True))  # TODO: Add icon and messages_en
-        menu.addAction(getMessage("saveplaylisttofile-menu-label"),lambda: self.OpenSavePlaylistToFileDialog()) # TODO: Add icon
-        menu.addSeparator()
-        menu.addAction(QtGui.QPixmap(resourcespath + "film_folder_edit.png"), getMessage("setmediadirectories-menu-label"), lambda: self.openSetMediaDirectoriesDialog())
-        menu.addAction(QtGui.QPixmap(resourcespath + "shield_edit.png"), getMessage("settrusteddomains-menu-label"), lambda: self.openSetTrustedDomainsDialog())
+        firstFile = item.sibling(item.row(), 0).data()
+        pathFound = self._syncplayClient.findFilepath(firstFile) if not isURL(firstFile) else None
+        if self._syncplayClient.getCurrentFile() is None or firstFile != self._syncplayClient.getCurrentFile()["name"]:
+            if isURL(firstFile):
+                menu.addAction(QtGui.QPixmap(resourcespath + "world_go.png"), getMessage("openstreamurl-menu-label"), lambda: self.openFile(firstFile, resetPosition=True, fromUser=True))
+            elif pathFound:
+                    menu.addAction(QtGui.QPixmap(resourcespath + "film_go.png"), getMessage("openmedia-menu-label"), lambda: self.openFile(pathFound, resetPosition=True, fromUser=True))
+        if pathFound:
+            menu.addAction(QtGui.QPixmap(resourcespath + "folder_film.png"),
+                           getMessage('open-containing-folder'),
+                           lambda: utils.open_system_file_browser(pathFound))
+        if self._syncplayClient.isUntrustedTrustableURI(firstFile):
+            domain = utils.getDomainFromURL(firstFile)
+            if domain:
+                menu.addAction(QtGui.QPixmap(resourcespath + "shield_add.png"), getMessage("addtrusteddomain-menu-label").format(domain), lambda: self.addTrustedDomain(domain))
+        menu.addAction(QtGui.QPixmap(resourcespath + "delete.png"), getMessage("removefromplaylist-menu-label"), lambda: self.deleteSelectedPlaylistItems())
         menu.exec_(self.playlist.viewport().mapToGlobal(position))
 
     def openRoomMenu(self, position):
@@ -910,7 +899,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.playlist.updatePlaylistIndexIcon()
 
     def updateRoomName(self, room=""):
+        self.roomLabel.setText("Room: " + room)
         self.roomsCombobox.setEditText(room)
+        self.hideRoomEditMode()
         try:
             if self.config['autosaveJoinsToList']:
                 self.addRoomToList(room)
@@ -942,6 +933,8 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 room = self._syncplayClient.getDefaultRoom()
         self.roomsCombobox.setEditText(room)
+        self.roomLabel.setText("Room: " + room)
+        self.hideRoomEditMode()
         if room != self._syncplayClient.getRoom():
             self._syncplayClient.setRoom(room, resetAutoplay=True)
             self._syncplayClient.sendRoom()
@@ -1400,6 +1393,126 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
             self._syncplayClient.sendChat(chatText)
 
+    def addHeaderBar(self, window):
+        window.headerBar = QtWidgets.QFrame()
+        window.headerBar.setObjectName("headerBar")
+        window.headerBar.setStyleSheet(constants.STYLE_HEADER_BAR)
+        headerLayout = QtWidgets.QHBoxLayout()
+        headerLayout.setContentsMargins(8, 6, 8, 6)
+
+        # Room display (label mode)
+        window.roomIcon = QtWidgets.QLabel()
+        window.roomIcon.setPixmap(QtGui.QPixmap(resourcespath + 'door_in.png'))
+        window.roomLabel = QtWidgets.QLabel()
+        roomFont = QtGui.QFont()
+        roomFont.setWeight(QtGui.QFont.Bold)
+        roomFont.setPointSize(11)
+        window.roomLabel.setFont(roomFont)
+        window.roomLabel.setText("Room: —")
+
+        window.changeRoomButton = QtWidgets.QPushButton(getMessage("changeroom-label"))
+        window.changeRoomButton.pressed.connect(self.showRoomEditMode)
+
+        # Room edit (inline, hidden by default)
+        window.roomEditFrame = QtWidgets.QFrame()
+        window.roomEditFrame.setVisible(False)
+        roomEditLayout = QtWidgets.QHBoxLayout()
+        roomEditLayout.setContentsMargins(0, 0, 0, 0)
+        window.roomsCombobox = QtWidgets.QComboBox(self)
+        window.roomsCombobox.setEditable(True)
+        window.roomsCombobox.setMinimumWidth(160)
+        caseSensitiveCompleter = QtWidgets.QCompleter(self)
+        caseSensitiveCompleter.setCaseSensitivity(Qt.CaseSensitive)
+        window.roomsCombobox.setCompleter(caseSensitiveCompleter)
+        window.roomJoinButton = QtWidgets.QPushButton(getMessage("joinroom-label"))
+        window.roomJoinButton.pressed.connect(self.joinRoom)
+        window.roomCancelButton = QtWidgets.QPushButton(getMessage("cancel-label"))
+        window.roomCancelButton.pressed.connect(self.hideRoomEditMode)
+        roomEditLayout.addWidget(window.roomsCombobox)
+        roomEditLayout.addWidget(window.roomJoinButton)
+        roomEditLayout.addWidget(window.roomCancelButton)
+        window.roomEditFrame.setLayout(roomEditLayout)
+
+        # Autoplay controls (hidden by default, toggled via menu)
+        window.autoplayFrame = QtWidgets.QFrame()
+        window.autoplayFrame.setVisible(False)
+        window.autoplayLayout = QtWidgets.QHBoxLayout()
+        window.autoplayLayout.setContentsMargins(0, 0, 0, 0)
+        window.autoplayLayout.setSpacing(6)
+        window.autoplayFrame.setLayout(window.autoplayLayout)
+
+        window.autoplayPushButton = QtWidgets.QPushButton()
+        autoPlayFont = QtGui.QFont()
+        autoPlayFont.setWeight(QtGui.QFont.Bold)
+        window.autoplayPushButton.setText(getMessage("autoplay-guipushbuttonlabel"))
+        window.autoplayPushButton.setCheckable(True)
+        window.autoplayPushButton.setAutoExclusive(False)
+        window.autoplayPushButton.toggled.connect(self.changeAutoplayState)
+        window.autoplayPushButton.setFont(autoPlayFont)
+        window.autoplayPushButton.setStyleSheet(constants.STYLE_AUTO_PLAY_PUSHBUTTON)
+        window.autoplayPushButton.setToolTip(getMessage("autoplay-tooltip"))
+
+        window.autoplayLabel = QtWidgets.QLabel(getMessage("autoplay-minimum-label"))
+        window.autoplayLabel.setToolTip(getMessage("autoplay-tooltip"))
+
+        window.autoplayThresholdSpinbox = QtWidgets.QSpinBox()
+        window.autoplayThresholdSpinbox.setMinimum(2)
+        window.autoplayThresholdSpinbox.setMaximum(99)
+        window.autoplayThresholdSpinbox.setToolTip(getMessage("autoplay-tooltip"))
+        window.autoplayThresholdSpinbox.valueChanged.connect(self.changeAutoplayThreshold)
+
+        window.autoplayLayout.addWidget(window.autoplayPushButton)
+        window.autoplayLayout.addWidget(window.autoplayLabel)
+        window.autoplayLayout.addWidget(window.autoplayThresholdSpinbox)
+
+        # Ready button (prominent, right-aligned)
+        window.readyPushButton = QtWidgets.QPushButton()
+        readyFont = QtGui.QFont()
+        readyFont.setWeight(QtGui.QFont.Bold)
+        window.readyPushButton.setFont(readyFont)
+        window.readyPushButton.setCheckable(True)
+        window.readyPushButton.setAutoExclusive(False)
+        window.readyPushButton.toggled.connect(self.changeReadyState)
+        window.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_UNCHECKED)
+        window.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
+        window.readyPushButton.setToolTip(getMessage("ready-tooltip"))
+        # Pre-compute minimum width from the longer label to prevent layout shift
+        window.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
+        readyWidth = window.readyPushButton.sizeHint().width()
+        window.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
+        notReadyWidth = window.readyPushButton.sizeHint().width()
+        window.readyPushButton.setMinimumWidth(max(readyWidth, notReadyWidth))
+
+        # SSL button
+        window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png').scaled(16, 16), "")
+        window.sslButton.setVisible(False)
+        window.sslButton.setFixedSize(24, 24)
+        window.sslButton.pressed.connect(self.openSSLDetails)
+        window.sslButton.setToolTip(getMessage("sslconnection-tooltip"))
+
+        headerLayout.addWidget(window.roomIcon)
+        headerLayout.addWidget(window.roomLabel)
+        headerLayout.addWidget(window.changeRoomButton)
+        headerLayout.addWidget(window.roomEditFrame)
+        headerLayout.addStretch()
+        headerLayout.addWidget(window.autoplayFrame)
+        headerLayout.addWidget(window.readyPushButton)
+        headerLayout.addWidget(window.sslButton)
+
+        window.headerBar.setLayout(headerLayout)
+        window.mainLayout.addWidget(window.headerBar)
+
+    def showRoomEditMode(self):
+        self.roomLabel.setVisible(False)
+        self.changeRoomButton.setVisible(False)
+        self.roomEditFrame.setVisible(True)
+        self.roomsCombobox.setFocus()
+
+    def hideRoomEditMode(self):
+        self.roomEditFrame.setVisible(False)
+        self.roomLabel.setVisible(True)
+        self.changeRoomButton.setVisible(True)
+
     def addTopLayout(self, window):
         # ── Zone A (Left): Playlist + User List ─────────────────────────────
         window.zoneAFrame = QtWidgets.QFrame()
@@ -1413,45 +1526,61 @@ class MainWindow(QtWidgets.QMainWindow):
         window.listSplit = QtWidgets.QSplitter(Qt.Vertical, self)
         window.listSplit.setHandleWidth(2)
 
-        # ── Playlist Panel ──────────────────────────────────────────────────
-        window.playlistGroup = self.PlaylistGroupBox(getMessage("sharedplaylistenabled-label"))
-        window.playlistGroup.setCheckable(True)
-        window.playlistGroup.toggled.connect(self.changePlaylistEnabledState)
-        window.playlistLayout = QtWidgets.QVBoxLayout()
-        window.playlistGroup.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        window.playlistGroup.setAcceptDrops(True)
+        # ── Playlist Action Bar ─────────────────────────────────────────────
+        window.playlistActionBar = QtWidgets.QHBoxLayout()
+        window.playlistActionBar.setContentsMargins(0, 4, 0, 4)
+        window.playlistActionBar.setSpacing(4)
 
-        # Playlist toolbar (surfaced actions instead of context-menu-only)
-        window.playlistToolbar = QtWidgets.QHBoxLayout()
-        window.playlistToolbar.setContentsMargins(0, 0, 0, 4)
-        window.playlistToolbar.setSpacing(4)
-
-        window.addFileButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'film_add.png'), getMessage("addfilestoplaylist-menu-label"))
-        window.addFileButton.setProperty("buttonTier", "secondary")
+        window.addFileButton = QtWidgets.QPushButton(
+            QtGui.QPixmap(resourcespath + 'film_add.png'),
+            getMessage("addfilestoplaylist-menu-label"))
         window.addFileButton.pressed.connect(self.OpenAddFilesToPlaylistDialog)
-        window.addFileButton.setToolTip(getMessage("addfilestoplaylist-menu-label"))
 
-        window.addURLButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'world_add.png'), getMessage("addurlstoplaylist-menu-label"))
-        window.addURLButton.setProperty("buttonTier", "secondary")
+        window.addURLButton = QtWidgets.QPushButton(
+            QtGui.QPixmap(resourcespath + 'world_add.png'),
+            getMessage("addurlstoplaylist-menu-label"))
         window.addURLButton.pressed.connect(self.OpenAddURIsToPlaylistDialog)
-        window.addURLButton.setToolTip(getMessage("addurlstoplaylist-menu-label"))
 
-        window.shuffleButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_switch.png'), "")
-        window.shuffleButton.setProperty("buttonTier", "tertiary")
-        window.shuffleButton.pressed.connect(self.shuffleRemainingPlaylist)
-        window.shuffleButton.setToolTip(getMessage("shuffleremainingplaylist-menu-label"))
+        window.playlistMoreButton = QtWidgets.QToolButton()
+        window.playlistMoreButton.setText(getMessage("more-menu-label"))
+        window.playlistMoreButton.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        window.playlistMoreMenu = QtWidgets.QMenu()
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'arrow_switch.png'), getMessage("shuffleremainingplaylist-menu-label"), lambda: self.shuffleRemainingPlaylist())
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'arrow_switch.png'), getMessage("shuffleentireplaylist-menu-label"), lambda: self.shuffleEntirePlaylist())
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'arrow_undo.png'), getMessage("undoplaylist-menu-label"), lambda: self.undoPlaylistChange())
+        window.playlistMoreMenu.addSeparator()
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'film_edit.png'), getMessage("editplaylist-menu-label"), lambda: self.openEditPlaylistDialog())
+        window.playlistMoreMenu.addSeparator()
+        window.playlistMoreMenu.addAction(getMessage("loadplaylistfromfile-menu-label"), lambda: self.OpenLoadPlaylistFromFileDialog())
+        window.playlistMoreMenu.addAction("Load and shuffle playlist from file", lambda: self.OpenLoadPlaylistFromFileDialog(shuffle=True))
+        window.playlistMoreMenu.addAction(getMessage("saveplaylisttofile-menu-label"), lambda: self.OpenSavePlaylistToFileDialog())
+        window.playlistMoreMenu.addSeparator()
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'film_folder_edit.png'), getMessage("setmediadirectories-menu-label"), lambda: self.openSetMediaDirectoriesDialog())
+        window.playlistMoreMenu.addAction(QtGui.QPixmap(resourcespath + 'shield_edit.png'), getMessage("settrusteddomains-menu-label"), lambda: self.openSetTrustedDomainsDialog())
+        window.playlistMoreButton.setMenu(window.playlistMoreMenu)
 
-        window.undoPlaylistButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_undo.png'), "")
-        window.undoPlaylistButton.setProperty("buttonTier", "tertiary")
-        window.undoPlaylistButton.pressed.connect(self.undoPlaylistChange)
-        window.undoPlaylistButton.setToolTip(getMessage("undoplaylist-menu-label"))
+        window.sharedPlaylistCheckbox = QtWidgets.QPushButton()
+        window.sharedPlaylistCheckbox.setText(getMessage("sharedplaylistenabled-label"))
+        window.sharedPlaylistCheckbox.setCheckable(True)
+        window.sharedPlaylistCheckbox.setAutoExclusive(False)
+        window.sharedPlaylistCheckbox.toggled.connect(self.changePlaylistEnabledState)
+        window.sharedPlaylistCheckbox.setStyleSheet(constants.STYLE_AUTO_PLAY_PUSHBUTTON)
+        window.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
 
-        window.playlistToolbar.addWidget(window.addFileButton)
-        window.playlistToolbar.addWidget(window.addURLButton)
-        window.playlistToolbar.addStretch()
-        window.playlistToolbar.addWidget(window.shuffleButton)
-        window.playlistToolbar.addWidget(window.undoPlaylistButton)
-        window.playlistLayout.addLayout(window.playlistToolbar)
+        window.playlistActionBar.addWidget(window.addFileButton)
+        window.playlistActionBar.addWidget(window.addURLButton)
+        window.playlistActionBar.addWidget(window.playlistMoreButton)
+        window.playlistActionBar.addStretch()
+        window.playlistActionBar.addWidget(window.sharedPlaylistCheckbox)
+
+        playlistActionFrame = QtWidgets.QFrame()
+        playlistActionFrame.setLayout(window.playlistActionBar)
+        zoneALayout.addWidget(playlistActionFrame)
+
+        # ── Playlist Panel ──────────────────────────────────────────────────
+        window.playlistFrame = QtWidgets.QFrame()
+        window.playlistFrame.setAcceptDrops(True)
+        window.playlistLayout = QtWidgets.QVBoxLayout()
 
         window.playlist = self.PlaylistWidget()
         window.playlist.setWindow(window)
@@ -1474,8 +1603,8 @@ class MainWindow(QtWidgets.QMainWindow):
         playlistItem.setFont(noteFont)
         window.playlist.addItem(playlistItem)
         window.playlistLayout.addWidget(window.playlist)
-        window.playlistGroup.setLayout(window.playlistLayout)
-        window.listSplit.addWidget(window.playlistGroup)
+        window.playlistFrame.setLayout(window.playlistLayout)
+        window.listSplit.addWidget(window.playlistFrame)
 
         # ── User List Panel ─────────────────────────────────────────────────
         window.userlistFrame = QtWidgets.QFrame()
@@ -1487,19 +1616,9 @@ class MainWindow(QtWidgets.QMainWindow):
         window.userlistLayout.setSpacing(4)
         window.userlistFrame.setLayout(window.userlistLayout)
 
-        # User list header row
-        window.userlistHeaderLayout = QtWidgets.QHBoxLayout()
         window.listlabel = QtWidgets.QLabel(getMessage("userlist-heading-label"))
         window.listlabel.setObjectName("sectionLabel")
-        window.sslButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'lock_green.png').scaled(16, 16), "")
-        window.sslButton.setProperty("buttonTier", "tertiary")
-        window.sslButton.setVisible(False)
-        window.sslButton.setFixedSize(24, 24)
-        window.sslButton.pressed.connect(self.openSSLDetails)
-        window.sslButton.setToolTip(getMessage("sslconnection-tooltip"))
-        window.userlistHeaderLayout.addWidget(window.listlabel, 1)
-        window.userlistHeaderLayout.addWidget(window.sslButton, 0, Qt.AlignRight)
-        window.userlistLayout.addLayout(window.userlistHeaderLayout)
+        window.userlistLayout.addWidget(window.listlabel)
 
         window.listTreeModel = QtGui.QStandardItemModel()
         window.listTreeView = QtWidgets.QTreeView()
@@ -1541,10 +1660,6 @@ class MainWindow(QtWidgets.QMainWindow):
         window.outputbox.setCursorWidth(0)
         zoneBLayout.addWidget(window.outputbox)
 
-        # Playback frame (hidden by default, toggled from menu)
-        self.addPlaybackLayout(window)
-        zoneBLayout.addWidget(window.playbackFrame)
-
         # Chat input row
         window.chatLayout = QtWidgets.QHBoxLayout()
         window.chatLayout.setContentsMargins(0, 0, 0, 0)
@@ -1581,109 +1696,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window.listFrame = window.zoneAFrame
         window.listLayout = zoneALayout
 
-    def addBottomLayout(self, window):
-        # ── Zone C: Control Deck (fixed-height footer) ──────────────────────
-        window.controlDeck = QtWidgets.QFrame()
-        window.controlDeck.setObjectName("controlDeck")
-        window.controlDeck.setFixedHeight(48)
-        deckLayout = QtWidgets.QHBoxLayout()
-        deckLayout.setContentsMargins(10, 4, 10, 4)
-        deckLayout.setSpacing(8)
-        window.controlDeck.setLayout(deckLayout)
-
-        # ── Room selector ───────────────────────────────────────────────────
-        window.roomsCombobox = QtWidgets.QComboBox(self)
-        window.roomsCombobox.setEditable(True)
-        window.roomsCombobox.setMinimumWidth(160)
-        caseSensitiveCompleter = QtWidgets.QCompleter(self)
-        caseSensitiveCompleter.setCaseSensitivity(Qt.CaseSensitive)
-        window.roomsCombobox.setCompleter(caseSensitiveCompleter)
-
-        window.roomButton = QtWidgets.QPushButton(
-            QtGui.QPixmap(resourcespath + 'door_in.png'),
-            getMessage("joinroom-label"))
-        window.roomButton.setProperty("buttonTier", "secondary")
-        window.roomButton.pressed.connect(self.joinRoom)
-        window.roomButton.setToolTip(getMessage("joinroom-tooltip"))
-
-        deckLayout.addWidget(window.roomsCombobox)
-        deckLayout.addWidget(window.roomButton)
-
-        # Vertical separator
-        sep1 = QtWidgets.QFrame()
-        sep1.setFrameShape(QtWidgets.QFrame.VLine)
-        sep1.setFrameShadow(QtWidgets.QFrame.Sunken)
-        deckLayout.addWidget(sep1)
-
-        # ── Ready button (Tier 1 Primary) ───────────────────────────────────
-        window.readyPushButton = QtWidgets.QPushButton()
-        window.readyPushButton.setObjectName("readyButton")
-        window.readyPushButton.setProperty("buttonTier", "primary")
-        readyFont = QtGui.QFont()
-        readyFont.setWeight(QtGui.QFont.Bold)
-        window.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
-        window.readyPushButton.setCheckable(True)
-        window.readyPushButton.setAutoExclusive(False)
-        window.readyPushButton.toggled.connect(self.changeReadyState)
-        window.readyPushButton.setFont(readyFont)
-        window.readyPushButton.setToolTip(getMessage("ready-tooltip"))
-        window.readyPushButton.setMinimumWidth(120)
-        deckLayout.addWidget(window.readyPushButton)
-
-        # Vertical separator
-        sep2 = QtWidgets.QFrame()
-        sep2.setFrameShape(QtWidgets.QFrame.VLine)
-        sep2.setFrameShadow(QtWidgets.QFrame.Sunken)
-        deckLayout.addWidget(sep2)
-
-        # ── Autoplay controls ───────────────────────────────────────────────
-        window.autoplayFrame = QtWidgets.QFrame()
-        window.autoplayFrame.setVisible(False)
-        window.autoplayLayout = QtWidgets.QHBoxLayout()
-        window.autoplayLayout.setContentsMargins(0, 0, 0, 0)
-        window.autoplayLayout.setSpacing(6)
-        window.autoplayFrame.setLayout(window.autoplayLayout)
-
-        window.autoplayPushButton = QtWidgets.QPushButton()
-        window.autoplayPushButton.setObjectName("autoplayButton")
-        window.autoplayPushButton.setProperty("buttonTier", "secondary")
-        autoPlayFont = QtGui.QFont()
-        autoPlayFont.setWeight(QtGui.QFont.Bold)
-        window.autoplayPushButton.setText(getMessage("autoplay-guipushbuttonlabel"))
-        window.autoplayPushButton.setCheckable(True)
-        window.autoplayPushButton.setAutoExclusive(False)
-        window.autoplayPushButton.toggled.connect(self.changeAutoplayState)
-        window.autoplayPushButton.setFont(autoPlayFont)
-        window.autoplayPushButton.setToolTip(getMessage("autoplay-tooltip"))
-
-        window.autoplayLabel = QtWidgets.QLabel(getMessage("autoplay-minimum-label"))
-        window.autoplayLabel.setToolTip(getMessage("autoplay-tooltip"))
-
-        window.autoplayThresholdSpinbox = QtWidgets.QSpinBox()
-        window.autoplayThresholdSpinbox.setMinimum(2)
-        window.autoplayThresholdSpinbox.setMaximum(99)
-        window.autoplayThresholdSpinbox.setToolTip(getMessage("autoplay-tooltip"))
-        window.autoplayThresholdSpinbox.valueChanged.connect(self.changeAutoplayThreshold)
-
-        window.autoplayLayout.addWidget(window.autoplayPushButton)
-        window.autoplayLayout.addWidget(window.autoplayLabel)
-        window.autoplayLayout.addWidget(window.autoplayThresholdSpinbox)
-
-        deckLayout.addWidget(window.autoplayFrame)
-
-        deckLayout.addStretch()  # Push remaining items to the right
-
-        # Keep reference for addWidget
-        window.bottomFrame = window.controlDeck
-        window.bottomLayout = deckLayout
-
-        # Legacy references needed by other methods
-        window.roomLayout = deckLayout
-        window.roomFrame = window.controlDeck
-
-        window.mainLayout.addWidget(window.controlDeck)
-
-    def addPlaybackLayout(self, window):
+    def addPlaybackFooter(self, window):
         window.playbackFrame = QtWidgets.QFrame()
         window.playbackFrame.setVisible(False)
         window.playbackFrame.setContentsMargins(0, 0, 0, 0)
@@ -1699,22 +1712,18 @@ class MainWindow(QtWidgets.QMainWindow):
         window.seekInput.setFixedWidth(60)
 
         window.seekButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'clock_go.png'), "")
-        window.seekButton.setProperty("buttonTier", "tertiary")
         window.seekButton.setToolTip(getMessage("seektime-menu-label"))
         window.seekButton.pressed.connect(self.seekFromButton)
 
         window.unseekButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'arrow_undo.png'), "")
-        window.unseekButton.setProperty("buttonTier", "tertiary")
         window.unseekButton.setToolTip(getMessage("undoseek-menu-label"))
         window.unseekButton.pressed.connect(self.undoSeek)
 
         window.playButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'control_play_blue.png'), "")
-        window.playButton.setProperty("buttonTier", "tertiary")
         window.playButton.setToolTip(getMessage("play-menu-label"))
         window.playButton.pressed.connect(self.play)
 
         window.pauseButton = QtWidgets.QPushButton(QtGui.QPixmap(resourcespath + 'control_pause_blue.png'), "")
-        window.pauseButton.setProperty("buttonTier", "tertiary")
         window.pauseButton.setToolTip(getMessage("pause-menu-label"))
         window.pauseButton.pressed.connect(self.pause)
 
@@ -1724,7 +1733,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window.playbackLayout.addWidget(window.playButton)
         window.playbackLayout.addWidget(window.pauseButton)
         window.playbackFrame.setMaximumHeight(window.playbackFrame.sizeHint().height())
-        window.miscLayout = QtWidgets.QHBoxLayout()  # Keep reference for compatibility
+        window.mainLayout.addWidget(window.playbackFrame)
 
     def loadMenubar(self, window, passedBar):
         if passedBar is not None:
@@ -1763,65 +1772,43 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             window.menuBar.addMenu(window.fileMenu)
 
-        # Playback menu
+        # Room menu (was Advanced)
 
-        window.playbackMenu = QtWidgets.QMenu(getMessage("playback-menu-label"), self)
-        window.playAction = window.playbackMenu.addAction(
-            QtGui.QPixmap(resourcespath + 'control_play_blue.png'),
-            getMessage("play-menu-label"))
-        window.playAction.triggered.connect(self.play)
-        window.pauseAction = window.playbackMenu.addAction(
-            QtGui.QPixmap(resourcespath + 'control_pause_blue.png'),
-            getMessage("pause-menu-label"))
-        window.pauseAction.triggered.connect(self.pause)
-        window.seekAction = window.playbackMenu.addAction(
-            QtGui.QPixmap(resourcespath + 'clock_go.png'),
-            getMessage("seektime-menu-label"))
-        window.seekAction.triggered.connect(self.seekPositionDialog)
-        window.unseekAction = window.playbackMenu.addAction(
-            QtGui.QPixmap(resourcespath + 'arrow_undo.png'),
-            getMessage("undoseek-menu-label"))
-        window.unseekAction.triggered.connect(self.undoSeek)
-
-        window.menuBar.addMenu(window.playbackMenu)
-
-        # Advanced menu
-
-        window.advancedMenu = QtWidgets.QMenu(getMessage("advanced-menu-label"), self)
-        window.setoffsetAction = window.advancedMenu.addAction(
+        window.roomMenu = QtWidgets.QMenu(getMessage("advanced-menu-label"), self)
+        window.setoffsetAction = window.roomMenu.addAction(
             QtGui.QPixmap(resourcespath + 'timeline_marker.png'),
             getMessage("setoffset-menu-label"))
         window.setoffsetAction.triggered.connect(self.setOffset)
-        window.setTrustedDomainsAction = window.advancedMenu.addAction(
+        window.setTrustedDomainsAction = window.roomMenu.addAction(
             QtGui.QPixmap(resourcespath + 'shield_edit.png'),
             getMessage("settrusteddomains-menu-label"))
         window.setTrustedDomainsAction.triggered.connect(self.openSetTrustedDomainsDialog)
-        window.createcontrolledroomAction = window.advancedMenu.addAction(
+        window.createcontrolledroomAction = window.roomMenu.addAction(
             QtGui.QPixmap(resourcespath + 'page_white_key.png'), getMessage("createcontrolledroom-menu-label"))
         window.createcontrolledroomAction.triggered.connect(self.createControlledRoom)
-        window.identifyascontroller = window.advancedMenu.addAction(QtGui.QPixmap(resourcespath + 'key_go.png'),
+        window.identifyascontroller = window.roomMenu.addAction(QtGui.QPixmap(resourcespath + 'key_go.png'),
                                                                     getMessage("identifyascontroller-menu-label"))
         window.identifyascontroller.triggered.connect(self.identifyAsController)
 
-        window.menuBar.addMenu(window.advancedMenu)
+        window.menuBar.addMenu(window.roomMenu)
 
         # Window menu
 
-        window.windowMenu = QtWidgets.QMenu(getMessage("window-menu-label"), self)
+        window.viewMenu = QtWidgets.QMenu(getMessage("window-menu-label"), self)
 
-        window.editroomsAction = window.windowMenu.addAction(QtGui.QPixmap(resourcespath + 'door_open_edit.png'), getMessage("roomlist-msgbox-label"))
+        window.editroomsAction = window.viewMenu.addAction(QtGui.QPixmap(resourcespath + 'door_open_edit.png'), getMessage("roomlist-msgbox-label"))
         window.editroomsAction.triggered.connect(self.openEditRoomsDialog)
-        window.menuBar.addMenu(window.windowMenu)
+        window.menuBar.addMenu(window.viewMenu)
 
-        window.playbackAction = window.windowMenu.addAction(getMessage("playbackbuttons-menu-label"))
+        window.playbackAction = window.viewMenu.addAction(getMessage("playbackbuttons-menu-label"))
         window.playbackAction.setCheckable(True)
         window.playbackAction.triggered.connect(self.updatePlaybackFrameVisibility)
 
-        window.autoplayAction = window.windowMenu.addAction(getMessage("autoplay-menu-label"))
+        window.autoplayAction = window.viewMenu.addAction(getMessage("autoplay-menu-label"))
         window.autoplayAction.setCheckable(True)
         window.autoplayAction.triggered.connect(self.updateAutoplayVisibility)
 
-        window.hideEmptyRoomsAction = window.windowMenu.addAction(getMessage("hideemptyrooms-menu-label"))
+        window.hideEmptyRoomsAction = window.viewMenu.addAction(getMessage("hideemptyrooms-menu-label"))
         window.hideEmptyRoomsAction.setCheckable(True)
         window.hideEmptyRoomsAction.triggered.connect(self.updateEmptyRoomVisiblity)
 
@@ -1902,7 +1889,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.showDebugMessage("Tried to change ready state too soon.")
 
     def changePlaylistEnabledState(self):
-        self._syncplayClient.changePlaylistEnabledState(self.playlistGroup.isChecked())
+        self.updateSharedPlaylistIcon()
+        self._syncplayClient.changePlaylistEnabledState(self.sharedPlaylistCheckbox.isChecked())
+
+    def updateSharedPlaylistIcon(self):
+        if self.sharedPlaylistCheckbox.isChecked():
+            self.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'tick_checkbox.png'))
+        else:
+            self.sharedPlaylistCheckbox.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
 
     @needsClient
     def changeAutoplayThreshold(self, source=None):
@@ -1927,8 +1921,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateReadyIcon(self):
         ready = self.readyPushButton.isChecked()
         if ready:
+            self.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_CHECKED)
+            self.readyPushButton.setText(getMessage("ready-guipushbuttonlabel"))
             self.readyPushButton.setIcon(QtGui.QPixmap(resourcespath + 'tick_checkbox.png'))
         else:
+            self.readyPushButton.setStyleSheet(constants.STYLE_READY_PUSHBUTTON_UNCHECKED)
+            self.readyPushButton.setText(getMessage("notready-guipushbuttonlabel"))
             self.readyPushButton.setIcon(QtGui.QPixmap(resourcespath + 'empty_checkbox.png'))
 
     def updateAutoPlayIcon(self):
@@ -2159,8 +2157,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.mainLayout.setSpacing(0)
 
+        self.addHeaderBar(self)      # Header: room, ready, SSL, autoplay
         self.addTopLayout(self)     # Zones A + B
-        self.addBottomLayout(self)  # Zone C (Control Deck)
+        self.addPlaybackFooter(self)  # Playback controls footer
         self.loadMenubar(self, passedBar)
         self.populateMenubar(self)
         self.addMainFrame(self)

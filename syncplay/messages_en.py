@@ -322,6 +322,10 @@ en = {
     "sendmessage-label": "Send",
 
     "ready-guipushbuttonlabel": "I'm ready to watch!",
+    "notready-guipushbuttonlabel": "Not ready",
+    "cancel-label": "Cancel",
+    "more-menu-label": "More",
+    "changeroom-label": "Change Room",
 
     "roomuser-heading-label": "Room / User",
     "size-heading-label": "Size",

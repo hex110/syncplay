@@ -235,9 +235,18 @@ STYLE_SUBCHECKBOX = "QCheckBox, QLabel, QRadioButton {{ margin-left: 6px; paddin
 STYLE_SUBLABEL = "QCheckBox, QLabel {{ margin-left: 6px; padding-left: 16px; background:url('{}') left no-repeat }}"  # Graphic path
 STYLE_ERRORLABEL = "QLabel { color : black; border-style: outset; border-width: 2px; border-radius: 7px; border-color: red; padding: 2px; background: #FFAAAA; }"
 STYLE_SUCCESSLABEL = "QLabel { color : black; border-style: outset; border-width: 2px; border-radius: 7px; border-color: green; padding: 2px; background: #AAFFAA; }"
-STYLE_READY_PUSHBUTTON = getValueForOS({
-    OS_DEFAULT: "QPushButton { text-align: left; padding: 10px 5px 10px 5px;}",
-    OS_MACOS: "QPushButton { text-align: left; padding: 10px 5px 10px 15px; margin: 0px 3px 0px 2px}"})
+STYLE_READY_PUSHBUTTON_CHECKED = getValueForOS({
+    OS_DEFAULT: "QPushButton { text-align: left; padding: 8px 12px; font-weight: bold; color: #2E7D32; }",
+    OS_MACOS: "QPushButton { text-align: left; padding: 10px 12px; font-weight: bold; color: #2E7D32; }"})
+STYLE_READY_PUSHBUTTON_UNCHECKED = getValueForOS({
+    OS_DEFAULT: "QPushButton { text-align: left; padding: 8px 12px; }",
+    OS_MACOS: "QPushButton { text-align: left; padding: 10px 12px; }"})
+STYLE_HEADER_BAR = """
+    QFrame#headerBar {
+        background-color: palette(window);
+        border-bottom: 1px solid palette(mid);
+    }
+"""
 STYLE_AUTO_PLAY_PUSHBUTTON = getValueForOS({
     OS_DEFAULT: "QPushButton { text-align: left; padding: 5px 5px 5px 5px; }",
     OS_MACOS: "QPushButton { text-align: left; padding: 10px 5px 10px 15px; margin: 0px 0px 0px -4px}"})
